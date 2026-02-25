@@ -21,7 +21,7 @@ class Sprite {
     this.frameBuffer = frameBuffer;
     this.elapsedFrames = 0;
   }
-
+0
   draw() {
     if (!this.image || !this.loaded) return;
 

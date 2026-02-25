@@ -5,7 +5,7 @@ class Player extends Sprite {
     platformCollisionBlocks,
     imageSrc,
     frameRate,
-    scale = 0.5,
+    scale = 0.75,
     animations,
   }) {
     super({ imageSrc, frameRate, scale })
@@ -42,8 +42,8 @@ class Player extends Sprite {
         x: this.position.x,
         y: this.position.y,
       },
-      width: 200,
-      height: 80,
+      width: 60,
+      height: 60,
     }
   }
 
@@ -59,11 +59,11 @@ class Player extends Sprite {
   updateCamerabox() {
     this.camerabox = {
       position: {
-        x: this.position.x - 50,
-        y: this.position.y - 20,
+        x: this.position.x - 22,
+        y: this.position.y - 30,
       },
-      width: 200,
-      height: 100,
+      width: 90,
+      height: 90,
     }
   }
 
@@ -78,7 +78,7 @@ class Player extends Sprite {
 
   shouldPanCameraToTheLeft({ canvas, camera }) {
     const cameraboxRightSide = this.camerabox.position.x + this.camerabox.width
-    const scaledDownCanvasWidth = canvas.width / 4
+    const scaledDownCanvasWidth = canvas.width / GAME_SCALE
 
     if (cameraboxRightSide >= WORLD_WIDTH) return
 
@@ -113,7 +113,7 @@ class Player extends Sprite {
     )
       return
 
-    const scaledCanvasHeight = canvas.height / 4
+    const scaledCanvasHeight = canvas.height / GAME_SCALE
 
     if (
       this.camerabox.position.y + this.camerabox.height >=
@@ -128,25 +128,6 @@ class Player extends Sprite {
     this.updateHitbox()
 
     this.updateCamerabox()
-    // c.fillStyle = 'rgba(0, 0, 255, 0.2)'
-    // c.fillRect(
-    //   this.camerabox.position.x,
-    //   this.camerabox.position.y,
-    //   this.camerabox.width,
-    //   this.camerabox.height
-    // )
-
-    // draws out the image
-    // c.fillStyle = 'rgba(0, 255, 0, 0.2)'
-    // c.fillRect(this.position.x, this.position.y, this.width, this.height)
-
-    // c.fillStyle = 'rgba(255, 0, 0, 0.2)'
-    // c.fillRect(
-    //   this.hitbox.position.x,
-    //   this.hitbox.position.y,
-    //   this.hitbox.width,
-    //   this.hitbox.height
-    // )
 
     this.draw()
 
@@ -161,11 +142,11 @@ class Player extends Sprite {
   updateHitbox() {
     this.hitbox = {
       position: {
-        x: this.position.x + 35,
-        y: this.position.y + 26,
+        x: this.position.x + 52,
+        y: this.position.y + 39,
       },
-      width: 14,
-      height: 27,
+      width: 21,
+      height: 41,
     }
   }
 

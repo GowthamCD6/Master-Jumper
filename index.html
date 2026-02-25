@@ -7,25 +7,48 @@
         <link rel="icon" href="data:," />
         <style>
             body {
-                background: black;
+                background: #111;
                 margin: 0;
+                overflow: hidden;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
             }
 
             canvas {
                 display: block;
-                width: 100vw;
-                height: 100vh;
+                /* fixed mobile ratio – fits height, centred horizontally */
             }
         </style>
     </head>
     <body>
         <canvas></canvas>
 
+        <!-- 1. Utilities & base classes -->
         <script src="./js/utils.js"></script>
         <script src="./js/classes/CollisionBlock.js"></script>
         <script src="./js/classes/Sprite.js"></script>
         <script src="./js/classes/Player.js"></script>
+        <script src="./js/classes/SteppingStone.js"></script>
+
+        <!-- 2. World data & collision parsing -->
         <script src="./js/data/collisions.js"></script>
+        <script src="./js/data/parseCollisions.js"></script>
+
+        <!-- 3. Canvas, background, camera -->
+        <script src="./js/canvas.js"></script>
+        <script src="./js/background.js"></script>
+        <script src="./js/camera.js"></script>
+
+        <!-- 4. Hero instance (needs collisionBlocks, canvas, camera) -->
+        <script src="./js/hero.js"></script>
+
+        <!-- 5. HUD & input (need player) -->
+        <script src="./js/hud.js"></script>
+        <script src="./js/input.js"></script>
+
+        <!-- 6. Game loop (loaded last, starts everything) -->
         <script src="./index.js"></script>
     </body>
 </html>
