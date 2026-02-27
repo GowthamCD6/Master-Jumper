@@ -22,7 +22,7 @@ window.addEventListener("keydown", (event) => {
     case "ArrowUp":
     case " ":
       if (player.isOnGround) {
-        player.velocity.y = -6;
+        player.velocity.y = -3.5;
         player.isOnGround = false;
       }
       break;

@@ -42,9 +42,9 @@ function _randInt(min, max) {
 const platformGroups = [];
 
 // ── Generate platforms with EASY / HARD zones ───────────────
-// Player physics: jump vel = -6, gravity = 0.2
-// Max jump height ≈ 90px (~5.6 tiles), horizontal speed = 3px/frame
-// Jump arc ≈ 60 frames → max horizontal travel ≈ 180px
+// Player physics: jump vel = -3.5, gravity = 0.07
+// Max jump height ≈ 87.5px (~5.5 tiles), horizontal speed = 2.5px/frame
+// Jump arc ≈ 100 frames → max horizontal travel ≈ 250px
 // Minimum gap = 5 rows (80px) to prevent stone sprite overlap
 
 let _prevCol = 0;
@@ -105,7 +105,7 @@ while (_row >= 0) {
 
   // ── Horizontal position with proper reach calculation ───
   const prevCenter = _prevCol + _prevWidth / 2;
-  const maxJumpTiles = _isHardZone ? 6 : 8;  // tighter reach in hard zones
+  const maxJumpTiles = _isHardZone ? 4 : 5;  // reduced to match slower horizontal speed
 
   let minCol = Math.max(0, Math.floor(prevCenter - maxJumpTiles - platWidth / 2));
   let maxCol = Math.min(WORLD_COLS - platWidth, Math.floor(prevCenter + maxJumpTiles - platWidth / 2));
@@ -156,14 +156,14 @@ while (_row >= 0) {
   _pIdx++;
 
   // ── Vertical gap based on difficulty ────────────────────
-  // Minimum 5 rows (80px) to prevent stone sprite overlap
+  // All gaps = 5 rows (80px), comfortably within jump height
   let vertGap;
   if (_isHardZone) {
-    // HARD: bigger gaps (5-6 rows), pushing jump limits
-    vertGap = _randInt(5, 6);
+    // HARD: same height gap but tighter horizontal placement
+    vertGap = 5;
   } else {
     // EASY: standard gaps (5 rows), comfortable jumps
-    vertGap = _randInt(5, 5);
+    vertGap = 5;
   }
   _row -= vertGap;
 

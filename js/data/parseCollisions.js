@@ -18,18 +18,24 @@ floorCollisions2D.forEach((row, y) => {
   });
 });
 
-const platformCollisions2D = [];
-for (let i = 0; i < platformCollisions.length; i += WORLD_COLS) {
-  platformCollisions2D.push(platformCollisions.slice(i, i + WORLD_COLS));
-}
-
+// ── Platform collision blocks ──────────────────────────────
+// Instead of using individual 16px tiles, create ONE collision
+// block per stepping stone that matches its full visual width
+// (including overhang).  This ensures the landing area lines up
+// exactly with what the player sees on screen.
 const platformCollisionBlocks = [];
-platformCollisions2D.forEach((row, y) => {
-  row.forEach((symbol, x) => {
-    if (symbol === 202) {
-      platformCollisionBlocks.push(
-        new CollisionBlock({ position: { x: x * 16, y: y * 16 }, height: 10 }),
-      );
-    }
-  });
+
+platformGroups.forEach((group) => {
+  // Match the overhang calculation in SteppingStone.js
+  const overhang = Math.min(16, group.width * 0.2);
+  const fullWidth = group.width + overhang;
+  const startX = group.x - overhang / 2;
+
+  platformCollisionBlocks.push(
+    new CollisionBlock({
+      position: { x: startX, y: group.y },
+      height: 14,    // slightly thicker landing zone for reliable detection
+      width: fullWidth,
+    }),
+  );
 });

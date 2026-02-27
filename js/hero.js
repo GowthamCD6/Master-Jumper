@@ -2,7 +2,7 @@
 //  Hero – Player instance & animation config
 // ============================================================
 
-const gravity = 0.2;
+const gravity = 0.07;
 
 const player = new Player({
   position: {
@@ -35,11 +35,11 @@ function updateHero() {
   player.velocity.x = 0;
   if (keys.d.pressed) {
     player.switchSprite("Run");
-    player.velocity.x = 3;
+    player.velocity.x = 2.5;
     player.lastDirection = "right";
   } else if (keys.a.pressed) {
     player.switchSprite("RunLeft");
-    player.velocity.x = -3;
+    player.velocity.x = -2.5;
     player.lastDirection = "left";
   } else if (player.velocity.y === 0) {
     if (player.lastDirection === "right") player.switchSprite("Idle");
