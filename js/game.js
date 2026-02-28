@@ -119,10 +119,19 @@ function updateHero() {
 
 function checkRespawn() {
   if (player.position.y > WORLD_HEIGHT + 100) {
-    player.position.x = Math.floor((WORLD_WIDTH - 40) / 2);
-    player.position.y = WORLD_HEIGHT - 80;
-    player.velocity.y = 0;
-    camera.position.y = -(WORLD_HEIGHT - scaledCanvas.height);
+    if (!gameOver) {
+      heroHP = 0;
+      gameOver = true;
+      deathTimer = 0;
+    }
+  }
+  const cameraBottomY = -camera.position.y + scaledCanvas.height;
+  if (player.position.y > cameraBottomY + scaledCanvas.height * 1.5) {
+    if (!gameOver) {
+      heroHP = 0;
+      gameOver = true;
+      deathTimer = 0;
+    }
   }
 }
 
@@ -130,6 +139,7 @@ const keys = { d: { pressed: false }, a: { pressed: false } };
 
 window.addEventListener("keydown", (event) => {
   if (event.repeat) return;
+  if (gameOver) return;
   switch (event.key) {
     case "d": case "ArrowRight": keys.d.pressed = true;  break;
     case "a": case "ArrowLeft":  keys.a.pressed = true;  break;

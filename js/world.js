@@ -108,15 +108,6 @@ while (_row >= 0) {
   _pIdx++;
 
   _row -= 5;
-
-  if (_row < 0 && _row + 5 > 0) {
-    const topW = 4;
-    const topCol = Math.floor((WORLD_COLS - topW) / 2);
-    for (let col = topCol; col < topCol + topW; col++) {
-      platformCollisions[col] = 202;
-    }
-    platformGroups.push({ x: topCol * 16, y: 0, width: topW * 16, stoneType: 3 });
-  }
 }
 
 const floorCollisions2D = [];
@@ -203,8 +194,100 @@ const camera = {
   position: { x: 0, y: 0 },
 };
 
+let worldTopY = _row * 16;
+
+function extendWorldUpward(targetY) {
+  while (_row * 16 > targetY) {
+    if (_zoneLength <= 0) _startNewZone();
+    _zoneLength--;
+
+    let platWidth;
+    if (_isHardZone) {
+      const roll = _rng();
+      if (roll < 0.35)      platWidth = 2;
+      else if (roll < 0.75) platWidth = 3;
+      else                  platWidth = 4;
+    } else {
+      const roll = _rng();
+      if (roll < 0.10)      platWidth = 2;
+      else if (roll < 0.35) platWidth = 3;
+      else if (roll < 0.70) platWidth = 4;
+      else                  platWidth = 5;
+    }
+
+    const prevCenter = _prevCol + _prevWidth / 2;
+    const maxJumpTiles = _isHardZone ? 5 : 6;
+    let minCol = Math.max(0, Math.floor(prevCenter - maxJumpTiles - platWidth / 2));
+    let maxCol = Math.min(WORLD_COLS - platWidth, Math.floor(prevCenter + maxJumpTiles - platWidth / 2));
+
+    let startCol;
+    const halfCols = Math.floor(WORLD_COLS / 2);
+    if (_lastSide >= 0 && minCol < halfCols - 1) {
+      startCol = _randInt(minCol, Math.min(Math.max(minCol, halfCols - 2), maxCol));
+      _lastSide = -1;
+    } else if (_lastSide < 0 && maxCol > halfCols) {
+      startCol = _randInt(Math.max(minCol, halfCols), maxCol);
+      _lastSide = 1;
+    } else {
+      startCol = _randInt(minCol, maxCol);
+      _lastSide = (startCol + platWidth / 2 < halfCols) ? -1 : 1;
+    }
+    startCol = Math.max(0, Math.min(WORLD_COLS - platWidth, startCol));
+
+    let stoneType;
+    if (platWidth <= 2)       stoneType = _randInt(3, 3);
+    else if (platWidth === 3) stoneType = _randInt(0, 2);
+    else if (platWidth === 4) stoneType = _randInt(1, 5);
+    else                      stoneType = _randInt(4, 5);
+
+    const platY = _row * 16;
+    const platX = startCol * 16;
+    const width = platWidth * 16;
+    const newIdx = platformGroups.length;
+
+    platformGroups.push({ x: platX, y: platY, width, stoneType });
+
+    const overhang = Math.min(16, width * 0.2);
+    const fullWidth = width + overhang;
+    platformCollisionBlocks.push(
+      new CollisionBlock({ position: { x: platX - overhang / 2, y: platY }, height: 14, width: fullWidth })
+    );
+
+    if (stoneLoaded) {
+      const stone = stoneSprites[stoneType];
+      const drawW = Math.round(width + overhang);
+      let drawH = Math.round(drawW * (stone.sh / stone.sw));
+      drawH = Math.min(drawH, MAX_STONE_HEIGHT);
+      const off = document.createElement("canvas");
+      off.width = drawW;
+      off.height = drawH;
+      const oc = off.getContext("2d");
+      oc.imageSmoothingEnabled = false;
+      oc.drawImage(stoneImg, stone.sx, stone.sy, stone.sw, stone.sh, 0, 0, drawW, drawH);
+      _stoneCaches.push({ canvas: off, drawW, drawH, overhang });
+    }
+
+    if (typeof _spawnForNewPlatform === "function") _spawnForNewPlatform(newIdx);
+    if (typeof _maybeSpawnBat === "function") _maybeSpawnBat(newIdx);
+
+    _prevCol = startCol;
+    _prevWidth = platWidth;
+    _pIdx++;
+    _row -= 5;
+  }
+  worldTopY = _row * 16;
+}
+
+function checkWorldExtension() {
+  const visibleTopY = -camera.position.y;
+  if (visibleTopY - worldTopY < 400) {
+    extendWorldUpward(worldTopY - 800);
+  }
+}
+
 function clampCamera() {
-  if (camera.position.y > 0) camera.position.y = 0;
+  const maxCamY = -worldTopY;
+  if (camera.position.y > maxCamY) camera.position.y = maxCamY;
   const minCamY = -(WORLD_HEIGHT - scaledCanvas.height);
   if (camera.position.y < minCamY) camera.position.y = minCamY;
   camera.position.x = 0;

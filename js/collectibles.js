@@ -1,5 +1,4 @@
 let coinScore  = 0;
-let heartCount = 0;
 
 function _cRng(seed) {
   return function () {
@@ -84,6 +83,66 @@ platformGroups.forEach((plat, idx) => {
   }
 });
 
+function _spawnForNewPlatform(idx) {
+  const plat = platformGroups[idx];
+
+  if (idx > 0) {
+    const A = platformGroups[idx - 1];
+    const B = plat;
+    const ax = A.x + A.width / 2;
+    const ay = A.y;
+    const bx = B.x + B.width / 2;
+    const by = B.y;
+    const dx = bx - ax;
+    const vertGap = Math.abs(by - ay);
+
+    if (Math.abs(dx) <= 220 && vertGap >= 16) {
+      const roll = _crng();
+      if (roll >= 0.05) {
+        const isHeartArc = roll > 0.92;
+        const higherY  = Math.min(ay, by);
+        const peakLift = 36;
+        const arcPeak  = (ay + by) / 2 - (higherY - peakLift);
+
+        if (isHeartArc) {
+          const hx = ax + 0.5 * dx - COIN_SZ / 2;
+          const hy = (ay + by) / 2 - arcPeak - COIN_SZ / 2;
+          if (hx >= 0 && hx + COIN_SZ <= WORLD_WIDTH) {
+            _spawn(hx, hy, "heart");
+          }
+        } else {
+          for (let ci = 0; ci < ARC_COINS; ci++) {
+            const t  = (ci + 1) / (ARC_COINS + 1);
+            const cx = ax + t * dx - COIN_SZ / 2;
+            const cy = ay + t * (by - ay) - arcPeak * Math.sin(Math.PI * t) - COIN_SZ / 2;
+            if (cx < 0 || cx + COIN_SZ > WORLD_WIDTH) continue;
+            _spawn(cx, cy, "coin");
+          }
+        }
+      }
+    }
+  }
+
+  const roll2 = _crng();
+  if (roll2 >= 0.55) {
+    const onY = plat.y - COIN_SZ - 2;
+    if (roll2 > 0.92 && plat.width >= 48) {
+      const spacing = 14;
+      const cx = plat.x + plat.width / 2;
+      for (let ci = -1; ci <= 1; ci++) {
+        _spawn(cx + ci * spacing - COIN_SZ / 2, onY, "coin");
+      }
+    } else if (roll2 > 0.78 && plat.width >= 32) {
+      const gap = plat.width * 0.3;
+      const cx  = plat.x + plat.width / 2;
+      _spawn(cx - gap / 2 - COIN_SZ / 2, onY, "coin");
+      _spawn(cx + gap / 2 - COIN_SZ / 2, onY, "coin");
+    } else {
+      _spawn(plat.x + plat.width / 2 - COIN_SZ / 2, onY, "coin");
+    }
+  }
+}
+
 function updateCollectibles() {
   collectibles.forEach((item) => {
     if (item.collected && !item._popping) return;
@@ -109,7 +168,14 @@ function checkCollectibleCollisions() {
     if (pRight > iLeft && pLeft < iRight && pBottom > iTop && pTop < iBottom) {
       item.collect();
       if (item.type === "coin")  coinScore++;
-      if (item.type === "heart") heartCount++;
+      if (item.type === "heart") {
+        if (heroHP < HERO_MAX_HP) {
+          heroHP++;
+        } else {
+          HERO_MAX_HP = Math.min(6, HERO_MAX_HP + 1);
+          heroHP = HERO_MAX_HP;
+        }
+      }
     }
   });
 }
@@ -156,21 +222,26 @@ _hudHeart.width = _hudHeart.height = 12;
 })();
 
 function drawHUD() {
-  const pad = 10;
+  const panelW = 90;
+  const panelH = 26;
+  const px = canvas.width - panelW - 10;
+  const py = 10;
   c.save();
-  c.fillStyle = "rgba(0,0,0,0.45)";
-  _roundRect(c, pad, pad, 140, 30, 8);
+
+  c.fillStyle = "rgba(0,0,0,0.5)";
+  _roundRect(c, px, py, panelW, panelH, 6);
   c.fill();
-  c.drawImage(_hudCoin, pad + 8, pad + 9, 12, 12);
+  c.strokeStyle = "rgba(255,255,255,0.12)";
+  c.lineWidth = 1;
+  _roundRect(c, px, py, panelW, panelH, 6);
+  c.stroke();
+
+  c.drawImage(_hudCoin, px + 8, py + 7, 12, 12);
   c.fillStyle   = "#FFD700";
-  c.font        = "bold 14px monospace";
+  c.font        = "bold 13px monospace";
   c.textBaseline = "middle";
-  c.fillText(`× ${coinScore}`, pad + 25, pad + 15);
-  c.fillStyle = "rgba(255,255,255,0.2)";
-  c.fillRect(pad + 70, pad + 6, 1, 18);
-  c.drawImage(_hudHeart, pad + 78, pad + 9, 12, 12);
-  c.fillStyle = "#FF6666";
-  c.fillText(`× ${heartCount}`, pad + 95, pad + 15);
+  c.fillText(`× ${coinScore}`, px + 24, py + 13);
+
   c.restore();
 }
 
@@ -209,18 +280,37 @@ function animate() {
     c.fillRect(block.position.x, block.position.y, block.width, 4);
   });
 
-  checkCollectibleCollisions();
-  updateCollectibles();
-  updateBats();
-  drawHeroHitEffect();
-  updateHero();
-  clampCamera();
+  if (!gameOver) {
+    checkWorldExtension();
+    checkCollectibleCollisions();
+    updateCollectibles();
+    updateBats();
+    drawHeroHitEffect();
+    updateHero();
+    updateFlyPower();         // override velocity after hero physics
+    drawFlyPowerEffects();    // world-space aura & sprite (inside camera)
+    clampCamera();
+  } else {
+    updateCollectibles();
+    bats.forEach((bat) => bat.draw());
+    player.draw();
+  }
 
   c.restore();
 
   drawHUD();
   drawHPHearts();
-  checkRespawn();
+  drawFlyPowerHUD();          // fly bar top-left
+  drawFlyButton();            // test button bottom-right
+  drawGameOverScreen();
+
+  if (!gameOver) checkRespawn();
 }
+
+window.addEventListener("keydown", (event) => {
+  if (gameOver && deathTimer > DEATH_DELAY) {
+    location.reload();
+  }
+});
 
 animate();

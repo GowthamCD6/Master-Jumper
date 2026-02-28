@@ -61,6 +61,7 @@ class Sprite {
       height: this.image.height,
     };
     if (this.flipX) {
+      c.save();
       c.translate(this.position.x + this.width, this.position.y);
       c.scale(-1, 1);
       c.drawImage(
@@ -123,8 +124,8 @@ class Player extends Sprite {
 
   updateCamerabox() {
     this.camerabox = {
-      position: { x: this.position.x - 22, y: this.position.y - 30 },
-      width: 90, height: 90,
+      position: { x: this.position.x - 22, y: this.position.y - 100 },
+      width: 90, height: 160,
     };
   }
 
@@ -154,16 +155,16 @@ class Player extends Sprite {
   }
 
   shouldPanCameraDown({ canvas, camera }) {
-    if (this.camerabox.position.y + this.velocity.y <= 0) return;
-    if (this.camerabox.position.y <= Math.abs(camera.position.y)) {
+    const visibleTopY = -camera.position.y;
+    if (this.camerabox.position.y <= visibleTopY) {
       camera.position.y -= this.velocity.y;
     }
   }
 
   shouldPanCameraUp({ canvas, camera }) {
-    if (this.camerabox.position.y + this.camerabox.height + this.velocity.y >= WORLD_HEIGHT) return;
     const scaledCanvasHeight = canvas.height / GAME_SCALE;
-    if (this.camerabox.position.y + this.camerabox.height >= Math.abs(camera.position.y) + scaledCanvasHeight) {
+    const visibleBottomY = -camera.position.y + scaledCanvasHeight;
+    if (this.camerabox.position.y + this.camerabox.height >= visibleBottomY) {
       camera.position.y -= this.velocity.y;
     }
   }
