@@ -689,65 +689,102 @@ function drawGameOverScreen() {
 
 function drawHPHearts() {
   if (player.position.y < highestY) highestY = player.position.y;
+  const heightClimbed = Math.max(0, Math.floor((WORLD_HEIGHT - highestY) / 16));
 
   c.save();
-
-  const startX = 10;
-  const y = 10;
-
-  c.fillStyle = "rgba(0,0,0,0.45)";
-  _roundRect(c, startX, y, 14 + HERO_MAX_HP * 18, 30, 8);
-  c.fill();
-
-  c.fillStyle = "#FF6666";
-  c.font = "bold 11px monospace";
   c.textBaseline = "middle";
-  c.fillText("HP", startX + 6, y + 15);
+  c.textAlign    = "left";
+
+  const HEART = 16;          // heart icon size
+  const GAP   = 6;           // gap between hearts
+  const PAD_X = 10;          // left padding inside panel
+  const PAD_Y = 10;          // top of panel from canvas edge
+
+  // ── Measure widths ─────────────────────────────────────────
+  const labelW  = 26;        // width taken by "HP " label
+  const heartsW = HERO_MAX_HP * HEART + (HERO_MAX_HP - 1) * GAP;
+  const panW    = PAD_X + labelW + heartsW + PAD_X;  // ~112 for 3 hearts
+  const panH    = 34;
+
+  // ╔══════════════════════════════════════╗
+  //  HP PANEL
+  // ╚══════════════════════════════════════╝
+  c.fillStyle = "rgba(8,8,16,0.82)";
+  _roundRect(c, PAD_Y, PAD_Y, panW, panH, 7);
+  c.fill();
+  c.strokeStyle = "rgba(255,255,255,0.13)";
+  c.lineWidth   = 1;
+  _roundRect(c, PAD_Y, PAD_Y, panW, panH, 7);
+  c.stroke();
+
+  // "HP" label
+  c.font      = "bold 10px monospace";
+  c.fillStyle = "#EE8888";
+  c.fillText("HP", PAD_Y + PAD_X, PAD_Y + panH / 2);
+
+  // Hearts row
+  const hStartX = PAD_Y + PAD_X + labelW;
+  const hStartY = PAD_Y + (panH - HEART) / 2;
 
   for (let i = 0; i < HERO_MAX_HP; i++) {
-    const hx = startX + 28 + i * 18;
-    const hy = y + 4;
+    const hx = hStartX + i * (HEART + GAP);
     if (i < heroHP) {
-      c.fillStyle = "#EE1111";
-      _drawMiniHeart(c, hx, hy, 14);
+      const pulse = heroHP === 1
+        ? 0.55 + 0.45 * Math.abs(Math.sin(Date.now() / 280))
+        : 1;
+      c.shadowColor = `rgba(220,40,40,${0.55 * pulse})`;
+      c.shadowBlur  = heroHP === 1 ? 10 * pulse : 4;
+      c.fillStyle   = heroHP === 1
+        ? `rgba(${Math.round(220 + 35 * pulse)},${Math.round(30 * pulse)},${Math.round(30 * pulse)},1)`
+        : "#DD1111";
     } else {
-      c.fillStyle = "#444444";
-      _drawMiniHeart(c, hx, hy, 14);
+      c.shadowBlur = 0;
+      c.fillStyle  = "rgba(255,255,255,0.08)";
     }
+    _drawMiniHeart(c, hx, hStartY, HEART);
+    c.shadowBlur = 0;
   }
 
-  const statsY = y + 36;
+  const sY   = PAD_Y + panH + 5;
+  const sH   = 20;
+  const sW   = panW;
 
-  c.textAlign = "left";
-  c.font = "bold 11px monospace";
-  c.fillStyle = "rgba(0,0,0,0.45)";
-  _roundRect(c, startX, statsY, 80, 18, 4);
+  c.fillStyle = "rgba(8,8,16,0.75)";
+  _roundRect(c, PAD_Y, sY, sW, sH, 5);
   c.fill();
-  c.fillStyle = "#FF8866";
-  c.fillText("\uD83D\uDC80 " + batsKilled, startX + 6, statsY + 10);
+  c.strokeStyle = "rgba(255,255,255,0.08)";
+  c.lineWidth   = 1;
+  _roundRect(c, PAD_Y, sY, sW, sH, 5);
+  c.stroke();
 
-  const heightClimbed = Math.max(0, Math.floor((WORLD_HEIGHT - highestY) / 16));
-  c.fillStyle = "rgba(0,0,0,0.45)";
-  _roundRect(c, startX + 86, statsY, 84, 18, 4);
-  c.fill();
-  c.fillStyle = "#88CCFF";
-  c.fillText("\u2B06 " + heightClimbed + "m", startX + 92, statsY + 10);
+  const midY = sY + sH / 2;
+
+  c.font      = "bold 10px monospace";
+  c.fillStyle = "#FF7755";
+  c.fillText("\u2694 " + batsKilled, PAD_Y + PAD_X, midY);
+  const divX = PAD_Y + sW / 2;
+  c.fillStyle = "rgba(255,255,255,0.18)";
+  c.fillRect(divX, sY + 4, 1, sH - 8);
+
+  c.fillStyle = "#77BBFF";
+  c.fillText("\u2191 " + heightClimbed + "m", divX + 8, midY);
 
   if (heroHP === 1 && !gameOver) {
-    const vigAlpha = 0.35 * (0.5 + 0.5 * Math.sin(Date.now() / 300));
-    const vigGrad = c.createRadialGradient(
+    const vigAlpha = 0.32 * (0.5 + 0.5 * Math.sin(Date.now() / 300));
+    const vigGrad  = c.createRadialGradient(
       canvas.width / 2, canvas.height / 2, canvas.height * 0.3,
       canvas.width / 2, canvas.height / 2, canvas.height * 0.7
     );
     vigGrad.addColorStop(0, "rgba(80,0,0,0)");
-    vigGrad.addColorStop(1, "rgba(120,0,0," + vigAlpha + ")");
+    vigGrad.addColorStop(1, "rgba(130,0,0," + vigAlpha + ")");
     c.fillStyle = vigGrad;
     c.fillRect(0, 0, canvas.width, canvas.height);
   }
 
+  // ── Damage flash ───────────────────────────────────────────
   if (damageFlash > 0) {
     damageFlash--;
-    c.fillStyle = "rgba(200, 0, 0, " + (damageFlash / 30) + ")";
+    c.fillStyle = "rgba(200,0,0," + (damageFlash / 30) + ")";
     c.fillRect(0, 0, canvas.width, canvas.height);
   }
 

@@ -222,25 +222,40 @@ _hudHeart.width = _hudHeart.height = 12;
 })();
 
 function drawHUD() {
-  const panelW = 90;
-  const panelH = 26;
-  const px = canvas.width - panelW - 10;
-  const py = 10;
-  c.save();
+  const ICON  = 18;
+  const panH  = 34;
+  const py    = 10;
 
-  c.fillStyle = "rgba(0,0,0,0.5)";
-  _roundRect(c, px, py, panelW, panelH, 6);
+  // Measure text width to auto-size panel
+  c.save();
+  c.font = "bold 14px monospace";
+  const numW  = c.measureText(String(coinScore)).width;
+  const panW  = 12 + ICON + 8 + 8 + numW + 12;   // pad + icon + gap + '×' + num + pad
+  const px    = canvas.width - panW - 10;
+
+  // ── Panel ──────────────────────────────────────────────────
+  c.fillStyle = "rgba(8,8,16,0.82)";
+  _roundRect(c, px, py, panW, panH, 7);
   c.fill();
-  c.strokeStyle = "rgba(255,255,255,0.12)";
-  c.lineWidth = 1;
-  _roundRect(c, px, py, panelW, panelH, 6);
+  c.strokeStyle = "rgba(255,210,0,0.22)";
+  c.lineWidth   = 1;
+  _roundRect(c, px, py, panW, panH, 7);
   c.stroke();
 
-  c.drawImage(_hudCoin, px + 8, py + 7, 12, 12);
-  c.fillStyle   = "#FFD700";
-  c.font        = "bold 13px monospace";
+  // ── Coin icon ──────────────────────────────────────────────
+  const iconX = px + 10;
+  const iconY = py + (panH - ICON) / 2;
+  c.shadowColor = "rgba(255,200,0,0.55)";
+  c.shadowBlur  = 7;
+  c.drawImage(_hudCoin, iconX, iconY, ICON, ICON);
+  c.shadowBlur  = 0;
+
+  // ── "× N" text ─────────────────────────────────────────────
+  c.fillStyle    = "#FFD700";
+  c.font         = "bold 14px monospace";
   c.textBaseline = "middle";
-  c.fillText(`× ${coinScore}`, px + 24, py + 13);
+  c.textAlign    = "left";
+  c.fillText(`\u00d7 ${coinScore}`, iconX + ICON + 8, py + panH / 2);
 
   c.restore();
 }
@@ -300,7 +315,6 @@ function animate() {
 
   drawHUD();
   drawHPHearts();
-  drawFlyPowerHUD();          // fly bar top-left
   drawFlyButton();            // test button bottom-right
   drawGameOverScreen();
 

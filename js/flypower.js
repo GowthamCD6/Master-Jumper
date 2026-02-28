@@ -1,40 +1,29 @@
-// ============================================================
-//  Fly Power  –  Sky Flight ability
-//  Sprite:  imgs/flappybirdassets(1).png  offset (64, 65)  22×23
-// ============================================================
+const FLY_DURATION     = 300;
+const FLY_COOLDOWN_MAX = 360;
+const FLY_RISE_SPEED   = -2.0;
+const FLY_SIDE_SPEED   = 2.5;  
 
-// ── Config ──────────────────────────────────────────────────
-const FLY_DURATION     = 300;   // 5 sec @ 60 fps
-const FLY_COOLDOWN_MAX = 360;   // 6 sec cooldown after use
-const FLY_RISE_SPEED   = -2.0;  // upward velocity while flying
-const FLY_SIDE_SPEED   = 2.5;   // horizontal speed (same as normal run)
-
-// Sprite sheet region (from the given CSS offset)
 const FLY_SX = 64, FLY_SY = 65, FLY_SW = 22, FLY_SH = 23;
 
-// ── State ────────────────────────────────────────────────────
 let flyPowerActive = false;
-let flyPowerTimer  = 0;        // frames remaining
-let flyCooldown    = 0;        // cooldown frames remaining
+let flyPowerTimer  = 0;
+let flyCooldown    = 0;  
 
 let _flyAuraAngle  = 0;
 let _flyWingTick   = 0;
 let _flyParticles  = [];
-let _flyBtnReady   = false;    // pointer listener added guard
+let _flyBtnReady   = false;
 
-// ── Sprite ───────────────────────────────────────────────────
 const _flyBirdImg    = new Image();
 let   _flyBirdLoaded = false;
 _flyBirdImg.onload   = () => { _flyBirdLoaded = true; };
 _flyBirdImg.onerror  = () => {
-  // Try the original user-specified path as fallback
   const _fb2 = new Image();
   _fb2.onload = () => { _flyBirdImg.src = _fb2.src; _flyBirdLoaded = true; };
   _fb2.src = "./imgs/flappybirdassets(1).png";
 };
 _flyBirdImg.src = "./img/warrior/powers.png";
 
-// ── Activation & deactivation ────────────────────────────────
 function activateFlyPower() {
   if (flyPowerActive || flyCooldown > 0 || gameOver) return;
   flyPowerActive = true;
@@ -47,11 +36,9 @@ function activateFlyPower() {
 function _deactivateFlyPower() {
   flyPowerActive = false;
   flyCooldown    = FLY_COOLDOWN_MAX;
-  // end-burst particles
   _spawnFlyBurst(8, "#88BBDD");
 }
 
-// ── Particle helpers ─────────────────────────────────────────
 function _spawnFlyBurst(count = 24, color = null) {
   const ph = player.hitbox;
   const ox = ph.position.x + ph.width  / 2;
@@ -77,7 +64,6 @@ function _spawnFlyTrail() {
   const ox = ph.position.x + ph.width  / 2;
   const oy = ph.position.y + ph.height / 2;
 
-  // ── Upward speed streak ──
   if (Math.random() < 0.5) {
     _flyParticles.push({
       type: "streak",
@@ -93,7 +79,6 @@ function _spawnFlyTrail() {
     });
   }
 
-  // ── Wing spark (left & right) ──
   const side = Math.random() < 0.5 ? -1 : 1;
   _flyParticles.push({
     type: "spark",
@@ -107,7 +92,6 @@ function _spawnFlyTrail() {
     hue: 170 + Math.random() * 60,
   });
 
-  // ── Star sparkle (rare, bright) ──
   if (Math.random() < 0.22) {
     const angle = Math.random() * Math.PI * 2;
     const dist  = 12 + Math.random() * 16;
@@ -120,17 +104,14 @@ function _spawnFlyTrail() {
       life: 24 + Math.floor(Math.random() * 14),
       maxLife: 38,
       size: 2.0 + Math.random() * 1.5,
-      hue: 40 + Math.random() * 40,  // golden
+      hue: 40 + Math.random() * 40,
     });
   }
 }
 
-// ── Main update (call AFTER updateHero every frame) ──────────
 function updateFlyPower() {
-  // Cooldown countdown
   if (!flyPowerActive) {
     if (flyCooldown > 0) flyCooldown--;
-    // Still drain old particles (physics only)
     _updateFlyParticles();
     return;
   }
@@ -142,24 +123,18 @@ function updateFlyPower() {
     return;
   }
 
-  // ── Physics override ──
-  // Rise upward automatically; player still steers left/right via keys
   player.velocity.y = FLY_RISE_SPEED;
-  // Disable vertical gravity accumulation by clamping velocity
   if (player.velocity.y < FLY_RISE_SPEED) player.velocity.y = FLY_RISE_SPEED;
 
-  // Pan camera to follow the ascending hero
   player.shouldPanCameraDown({ camera, canvas });
 
-  // ── Animation ticks ──
   _flyAuraAngle += 0.055;
   _flyWingTick++;
   if (Math.random() < 0.55) _spawnFlyTrail();
 
-  _updateFlyParticles(); // physics tick only; drawing happens in drawFlyPowerEffects
+  _updateFlyParticles();
 }
 
-// Physics-only particle update (advance positions, cull dead)
 function _updateFlyParticles() {
   for (let i = _flyParticles.length - 1; i >= 0; i--) {
     const p = _flyParticles[i];
@@ -170,7 +145,6 @@ function _updateFlyParticles() {
   }
 }
 
-// Draw-only particle renderer (called from drawFlyPowerEffects)
 function _tickFlyParticles() {
   for (let i = _flyParticles.length - 1; i >= 0; i--) {
     const p = _flyParticles[i];
@@ -181,7 +155,6 @@ function _tickFlyParticles() {
     c.globalAlpha = a;
 
     if (p.type === "streak") {
-      // Vertical light streak going down (hero moving up)
       c.strokeStyle = `hsl(${p.hue},100%,75%)`;
       c.lineWidth   = p.size;
       c.lineCap     = "round";
@@ -191,14 +164,12 @@ function _tickFlyParticles() {
       c.stroke();
 
     } else if (p.type === "spark") {
-      // Wing spark dot
       c.fillStyle = `hsl(${p.hue},100%,78%)`;
       c.beginPath();
       c.arc(p.x, p.y, p.size, 0, Math.PI * 2);
       c.fill();
 
     } else if (p.type === "star") {
-      // 4-point star sparkle
       const s = p.size;
       c.fillStyle = `hsl(${p.hue},100%,85%)`;
       c.beginPath();
@@ -214,7 +185,6 @@ function _tickFlyParticles() {
       c.fill();
 
     } else {
-      // Legacy plain dot
       c.fillStyle = p.color ?? `hsl(185,100%,70%)`;
       c.beginPath();
       c.arc(p.x, p.y, p.size, 0, Math.PI * 2);
@@ -225,11 +195,9 @@ function _tickFlyParticles() {
   }
 }
 
-// ── World-space draw (inside camera translate) ───────────────
 function drawFlyPowerEffects() {
   if (!flyPowerActive && _flyParticles.length === 0) return;
 
-  // Particles always draw (they linger after deactivation)
   _tickFlyParticles();
 
   if (!flyPowerActive) return;
@@ -237,14 +205,11 @@ function drawFlyPowerEffects() {
   const ph   = player.hitbox;
   const hx   = ph.position.x + ph.width  / 2;
   const hy   = ph.position.y + ph.height / 2;
-  const prog = flyPowerTimer / FLY_DURATION;   // 1→0 over duration
+  const prog = flyPowerTimer / FLY_DURATION;
   const tick = _flyWingTick;
 
   c.save();
 
-  // ══════════════════════════════════════════════════════════
-  //  LAYER 1 – Deep outer glow (large soft radial)
-  // ══════════════════════════════════════════════════════════
   const outerR  = 48 + 4 * Math.sin(tick * 0.07);
   const outerGr = c.createRadialGradient(hx, hy, 4, hx, hy, outerR);
   outerGr.addColorStop(0,   `rgba(0,210,255,${0.22 * prog})`);
@@ -255,10 +220,7 @@ function drawFlyPowerEffects() {
   c.arc(hx, hy, outerR, 0, Math.PI * 2);
   c.fill();
 
-  // ══════════════════════════════════════════════════════════
-  //  LAYER 2 – Animated LIGHT WINGS (bezier arcs, both sides)
-  // ══════════════════════════════════════════════════════════
-  const wingFlapOffset = Math.sin(tick * 0.18) * 6;   // wings beat up/down
+  const wingFlapOffset = Math.sin(tick * 0.18) * 6;
   const wingSpread     = 28 + 4 * Math.abs(Math.sin(tick * 0.18));
   const wingAlpha      = (0.55 + 0.20 * Math.sin(tick * 0.12)) * prog;
 
@@ -266,7 +228,6 @@ function drawFlyPowerEffects() {
     c.save();
     c.globalAlpha = wingAlpha;
 
-    // Feather gradient across wing
     const wgx1 = hx + side * 5;
     const wgx2 = hx + side * wingSpread;
     const wGr  = c.createLinearGradient(wgx1, hy, wgx2, hy - 18);
@@ -277,7 +238,6 @@ function drawFlyPowerEffects() {
     c.strokeStyle = `rgba(160,240,255,${wingAlpha * 0.7})`;
     c.lineWidth   = 1;
 
-    // Upper wing lobe
     c.beginPath();
     c.moveTo(hx + side * 6,  hy - 4);
     c.bezierCurveTo(
@@ -293,7 +253,6 @@ function drawFlyPowerEffects() {
     c.fill();
     c.stroke();
 
-    // Lower wing lobe (smaller)
     c.globalAlpha = wingAlpha * 0.55;
     c.beginPath();
     c.moveTo(hx + side * 5,  hy + 4);
@@ -312,9 +271,6 @@ function drawFlyPowerEffects() {
     c.restore();
   }
 
-  // ══════════════════════════════════════════════════════════
-  //  LAYER 3 – Speed lines (vertical streaks rising behind hero)
-  // ══════════════════════════════════════════════════════════
   c.save();
   const lineCount = 5;
   for (let li = 0; li < lineCount; li++) {
@@ -335,9 +291,6 @@ function drawFlyPowerEffects() {
   }
   c.restore();
 
-  // ══════════════════════════════════════════════════════════
-  //  LAYER 4 – Orbiting energy orbs
-  // ══════════════════════════════════════════════════════════
   const orbCount  = 4;
   const orbRadius = 22;
   for (let oi = 0; oi < orbCount; oi++) {
@@ -350,7 +303,6 @@ function drawFlyPowerEffects() {
 
     c.save();
     c.globalAlpha = orbA;
-    // Core dot
     c.fillStyle   = `hsl(${orbHue},100%,80%)`;
     c.beginPath();
     c.arc(ox_, oy_, orbSize, 0, Math.PI * 2);
@@ -426,10 +378,12 @@ function drawFlyPowerEffects() {
 
 // ── HUD bar (screen-space, outside camera) ───────────────────
 function drawFlyPowerHUD() {
-  const barW  = 76;
-  const barH  = 9;
-  const px    = 10;
-  const py    = 72;   // below the HP hearts panel
+  const panW = 155;
+  const panH = 26;
+  const barW = 84;
+  const barH = 7;
+  const px   = 10;
+  const py   = 70;   // directly below HP panel (py=10, panH=52 → gap at 68)
 
   const ready  = !flyPowerActive && flyCooldown === 0 && !gameOver;
   const active = flyPowerActive;
@@ -438,75 +392,71 @@ function drawFlyPowerHUD() {
   c.textBaseline = "middle";
   c.textAlign    = "left";
 
-  // Panel background
-  c.fillStyle = "rgba(0,0,0,0.50)";
-  _roundRect(c, px, py, 22 + barW + 8, barH + 14, 5);
+  // ── Panel ──────────────────────────────────────────────────
+  c.fillStyle = "rgba(0,0,0,0.68)";
+  _roundRect(c, px, py, panW, panH, 8);
+  c.fill();
+  c.strokeStyle = active ? "rgba(0,200,255,0.30)" : "rgba(255,255,255,0.08)";
+  c.lineWidth   = 1;
+  _roundRect(c, px, py, panW, panH, 8);
+  c.stroke();
+
+  // ── "FLY" label ─────────────────────────────────────────────
+  c.font      = "bold 9px monospace";
+  c.fillStyle = active ? "#00EEFF" : ready ? "#55AACC" : "#3a5566";
+  c.fillText("FLY", px + 8, py + 13);
+
+  // ── Bar track ───────────────────────────────────────────────
+  const bx  = px + 34;
+  const by_ = py + Math.floor((panH - barH) / 2);
+  c.fillStyle = "rgba(255,255,255,0.07)";
+  _roundRect(c, bx, by_, barW, barH, barH / 2);
   c.fill();
 
-  // Label
-  c.font      = "bold 8px monospace";
-  c.fillStyle = active  ? "#00EEFF"
-    : ready   ? "#55AACC"
-    :            "#3a5566";
-  c.fillText("FLY", px + 5, py + 10);
-
-  // Key hint on bar
-  c.font      = "7px monospace";
-  c.fillStyle = ready ? "rgba(100,200,255,0.65)" : "rgba(60,100,120,0.5)";
-  c.textAlign = "left";
-  c.fillText("[F]", px + 5, py + 20);
-
-  // Bar background
-  const bx = px + 22;
-  const by = py + 4;
-  c.fillStyle = "rgba(255,255,255,0.08)";
-  c.fillRect(bx, by, barW, barH);
-
-  // Bar fill
+  // ── Bar fill ────────────────────────────────────────────────
   let ratio, fillColor;
   if (active) {
     ratio     = flyPowerTimer / FLY_DURATION;
     const hue = 185 + (1 - ratio) * 55;
     fillColor = `hsl(${hue},100%,60%)`;
+    c.shadowColor = `hsl(${hue},100%,65%)`;
+    c.shadowBlur  = 6 + 2 * Math.sin(_flyAuraAngle * 3);
   } else if (flyCooldown > 0) {
     ratio     = 1 - flyCooldown / FLY_COOLDOWN_MAX;
-    fillColor = "#223344";
+    fillColor = "#1a3a4a";
   } else {
     ratio     = 1;
     fillColor = "#00BBFF";
-  }
-
-  // Glow when ready
-  if (ready) {
     c.shadowColor = "#00CCFF";
     c.shadowBlur  = 8 + 4 * Math.sin(_flyAuraAngle * 3);
   }
-  c.fillStyle = fillColor;
-  c.fillRect(bx, by, barW * ratio, barH);
+
+  if (ratio > 0) {
+    c.fillStyle = fillColor;
+    _roundRect(c, bx, by_, barW * ratio, barH, barH / 2);
+    c.fill();
+  }
   c.shadowBlur = 0;
 
   // Active shimmer
-  if (active && Math.floor(_flyWingTick / 5) % 2 === 0) {
+  if (active && Math.floor(_flyWingTick / 5) % 2 === 0 && ratio > 0) {
     c.fillStyle = "rgba(180,255,255,0.14)";
-    c.fillRect(bx, by, barW * ratio, barH);
+    _roundRect(c, bx, by_, barW * ratio, barH, barH / 2);
+    c.fill();
   }
 
-  // Thin border
-  c.strokeStyle = active ? "rgba(0,200,255,0.4)" : "rgba(255,255,255,0.07)";
-  c.lineWidth   = 0.8;
-  c.strokeRect(bx, by, barW, barH);
-
-  // Time text
+  // ── Status text (right of bar) ──────────────────────────────
+  const statX = bx + barW + 6;
+  c.font      = "bold 8px monospace";
   if (active) {
-    c.font      = "7px monospace";
     c.fillStyle = "#AAFFFF";
-    c.textAlign = "right";
-    c.fillText(Math.ceil(flyPowerTimer / 60) + "s", bx + barW + 6, py + 10);
+    c.fillText(Math.ceil(flyPowerTimer / 60) + "s", statX, py + 13);
   } else if (flyCooldown > 0) {
-    c.font      = "7px monospace";
     c.fillStyle = "#445566";
-    c.textAlign = "right";
-    c.fillText(Math.ceil(flyCooldown / 60) + "s", bx + barW + 6, py + 10);
+    c.fillText(Math.ceil(flyCooldown / 60) + "s", statX, py + 13);
+  } else {
+    c.fillStyle = "rgba(0,200,255,0.80)";
+    c.fillText("[F]", statX, py + 13);
   }
 
   c.restore();
