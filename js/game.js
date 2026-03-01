@@ -35,7 +35,7 @@ const gravity = 0.07;
 
 const player = new Player({
   position: {
-    x: Math.floor((WORLD_WIDTH - 40) / 2),
+    x: Math.floor(WORLD_WIDTH / 2 - 62), // centre hitbox on screen
     y: WORLD_HEIGHT - 80,
   },
   collisionBlocks,
@@ -84,11 +84,11 @@ function updateHero() {
 
   player.velocity.x = 0;
   if (keys.d.pressed) {
-    if (!isAttacking) player.switchSprite("Run");
+    if (!isAttacking && !flyPowerActive) player.switchSprite("Run");
     player.velocity.x = 2.5;
     player.lastDirection = "right";
   } else if (keys.a.pressed) {
-    if (!isAttacking) player.switchSprite("RunLeft");
+    if (!isAttacking && !flyPowerActive) player.switchSprite("RunLeft");
     player.velocity.x = -2.5;
     player.lastDirection = "left";
   } else if (player.velocity.y === 0 && !isAttacking) {
@@ -96,11 +96,11 @@ function updateHero() {
     else player.switchSprite("IdleLeft");
   }
 
-  if (player.velocity.y < 0 && !isAttacking) {
+  if (player.velocity.y < 0 && !isAttacking && !flyPowerActive) {
     player.shouldPanCameraDown({ camera, canvas });
     if (player.lastDirection === "right") player.switchSprite("Jump");
     else player.switchSprite("JumpLeft");
-  } else if (player.velocity.y > 0 && !isAttacking) {
+  } else if (player.velocity.y > 0 && !isAttacking && !flyPowerActive) {
     player.shouldPanCameraUp({ camera, canvas });
     if (player.lastDirection === "right") player.switchSprite("Fall");
     else player.switchSprite("FallLeft");
@@ -108,6 +108,12 @@ function updateHero() {
     player.shouldPanCameraDown({ camera, canvas });
   } else if (player.velocity.y > 0) {
     player.shouldPanCameraUp({ camera, canvas });
+  }
+
+  // During fly, lock the hero to Idle/IdleLeft (wings carry the visual)
+  if (flyPowerActive && !isAttacking) {
+    if (player.lastDirection === "right") player.switchSprite("Idle");
+    else player.switchSprite("IdleLeft");
   }
 
   if (isAttacking) {

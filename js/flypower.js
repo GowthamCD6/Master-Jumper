@@ -1,7 +1,6 @@
-const FLY_DURATION     = 300;
+const FLY_DURATION     = 600;  // 10 seconds at 60 fps
 const FLY_COOLDOWN_MAX = 360;
 const FLY_RISE_SPEED   = -2.0;
-const FLY_SIDE_SPEED   = 2.5;  
 
 const FLY_SX = 64, FLY_SY = 65, FLY_SW = 22, FLY_SH = 23;
 
@@ -46,7 +45,7 @@ function _spawnFlyBurst(count = 24, color = null) {
   for (let i = 0; i < count; i++) {
     const angle = (i / count) * Math.PI * 2 + Math.random() * 0.5;
     const spd   = 1.2 + Math.random() * 2.5;
-    const hue   = color ? null : 185 + Math.random() * 55;
+    const hue   = color ? null : 35 + Math.random() * 16;  // golden amber
     _flyParticles.push({
       x: ox, y: oy,
       vx: Math.cos(angle) * spd,
@@ -55,56 +54,6 @@ function _spawnFlyBurst(count = 24, color = null) {
       maxLife: 55,
       size:    2 + Math.random() * 3,
       color:   color ?? `hsl(${hue}, 100%, 70%)`,
-    });
-  }
-}
-
-function _spawnFlyTrail() {
-  const ph = player.hitbox;
-  const ox = ph.position.x + ph.width  / 2;
-  const oy = ph.position.y + ph.height / 2;
-
-  if (Math.random() < 0.5) {
-    _flyParticles.push({
-      type: "streak",
-      x: ox + (Math.random() - 0.5) * 18,
-      y: oy + ph.height * 0.3,
-      vx: (Math.random() - 0.5) * 0.4,
-      vy: 1.2 + Math.random() * 1.8,
-      life: 14 + Math.floor(Math.random() * 8),
-      maxLife: 22,
-      size: 1.5 + Math.random() * 1.0,
-      len: 8 + Math.random() * 10,
-      hue: 185 + Math.random() * 40,
-    });
-  }
-
-  const side = Math.random() < 0.5 ? -1 : 1;
-  _flyParticles.push({
-    type: "spark",
-    x: ox + side * (10 + Math.random() * 14),
-    y: oy - 2 + (Math.random() - 0.5) * 8,
-    vx: side * (0.6 + Math.random() * 1.2),
-    vy: -0.4 - Math.random() * 0.8,
-    life: 20 + Math.floor(Math.random() * 12),
-    maxLife: 32,
-    size: 1.2 + Math.random() * 1.8,
-    hue: 170 + Math.random() * 60,
-  });
-
-  if (Math.random() < 0.22) {
-    const angle = Math.random() * Math.PI * 2;
-    const dist  = 12 + Math.random() * 16;
-    _flyParticles.push({
-      type: "star",
-      x: ox + Math.cos(angle) * dist,
-      y: oy + Math.sin(angle) * dist,
-      vx: Math.cos(angle) * 0.3,
-      vy: -0.5 - Math.random() * 0.5,
-      life: 24 + Math.floor(Math.random() * 14),
-      maxLife: 38,
-      size: 2.0 + Math.random() * 1.5,
-      hue: 40 + Math.random() * 40,
     });
   }
 }
@@ -130,7 +79,6 @@ function updateFlyPower() {
 
   _flyAuraAngle += 0.055;
   _flyWingTick++;
-  if (Math.random() < 0.55) _spawnFlyTrail();
 
   _updateFlyParticles();
 }
@@ -185,7 +133,7 @@ function _tickFlyParticles() {
       c.fill();
 
     } else {
-      c.fillStyle = p.color ?? `hsl(185,100%,70%)`;
+      c.fillStyle = p.color ?? `hsl(38,100%,65%)`;
       c.beginPath();
       c.arc(p.x, p.y, p.size, 0, Math.PI * 2);
       c.fill();
@@ -193,6 +141,67 @@ function _tickFlyParticles() {
 
     c.restore();
   }
+}
+
+// ── king.wings1.png frame data ─────────────────────────────────
+// 3 source frames (from CSS sprite offsets)
+const _KING_WING_FRAMES = [
+  { sx:  50, sy:  20, sw: 307, sh: 181 }, // 0 – open   (wings fully spread)
+  { sx:  66, sy: 215, sw: 275, sh: 144 }, // 1 – middle (wings horizontal)
+  { sx: 101, sy: 387, sw: 206, sh: 139 }, // 2 – bottom (wings folded down)
+];
+// Natural flap cycle: open → middle → closed → middle → (repeat)
+const _KING_WING_SEQ = [0, 1, 2, 1];
+const _KING_WING_BUF = 10; // ticks per frame (~6 beats/sec at 60 fps)
+
+const _kingWingsImg    = new Image();
+let   _kingWingsLoaded = false;
+_kingWingsImg.onload   = () => { _kingWingsLoaded = true; };
+_kingWingsImg.src      = "./img/warrior/king.wings1.png";
+
+// ─────────────────────────────────────────────────────────────
+//  drawWingSprites()
+//  The game hero is hidden during flight (Player.draw() returns early).
+//  This function draws the COMPLETE king.wings.png frame (king + wings)
+//  at exactly player.height, at the same origin as the normal hero,
+//  so it looks identical in size and position. Wings extend naturally
+//  to the sides. Mirrors for left-facing direction.
+// ─────────────────────────────────────────────────────────────
+function drawWingSprites() {
+  if (!flyPowerActive || !_kingWingsLoaded) return;
+
+  const seqIdx = Math.floor(_flyWingTick / _KING_WING_BUF) % _KING_WING_SEQ.length;
+  const frame  = _KING_WING_FRAMES[_KING_WING_SEQ[seqIdx]];
+
+  // Use the hitbox (the real body) as anchor – avoids sprite-sheet padding bloat.
+  // dh is tuned so the king figure inside king.wings.png matches the normal hero.
+  const hb = player.hitbox;
+  const dh = hb.height * 1.2;          // ~90 px – same visual height as the hero
+  const dw = (frame.sw / frame.sh) * dh;
+
+  // Centre horizontally on the hitbox; vertically centred on the hitbox
+  const cx = hb.position.x + hb.width  / 2;
+  const cy = hb.position.y + hb.height / 2 - dh / 2;
+
+  // Fade out over the last 60 frames
+  const wingAlpha = flyPowerTimer <= 60 ? flyPowerTimer / 60 : 1.0;
+
+  c.save();
+  c.globalAlpha = wingAlpha;
+
+  if (player.lastDirection === "left") {
+    c.translate(cx, cy);
+    c.scale(-1, 1);
+    c.drawImage(_kingWingsImg,
+      frame.sx, frame.sy, frame.sw, frame.sh,
+      -dw / 2, 0, dw, dh);
+  } else {
+    c.drawImage(_kingWingsImg,
+      frame.sx, frame.sy, frame.sw, frame.sh,
+      cx - dw / 2, cy, dw, dh);
+  }
+
+  c.restore();
 }
 
 function drawFlyPowerEffects() {
@@ -212,150 +221,12 @@ function drawFlyPowerEffects() {
 
   const outerR  = 48 + 4 * Math.sin(tick * 0.07);
   const outerGr = c.createRadialGradient(hx, hy, 4, hx, hy, outerR);
-  outerGr.addColorStop(0,   `rgba(0,210,255,${0.22 * prog})`);
-  outerGr.addColorStop(0.4, `rgba(0,140,220,${0.12 * prog})`);
-  outerGr.addColorStop(1,   `rgba(0,40,120,0)`);
+  outerGr.addColorStop(0,   `rgba(255, 180, 30, ${0.28 * prog})`);
+  outerGr.addColorStop(0.4, `rgba(200, 100, 10, ${0.15 * prog})`);
+  outerGr.addColorStop(1,   `rgba(80, 20, 0, 0)`);
   c.fillStyle = outerGr;
   c.beginPath();
   c.arc(hx, hy, outerR, 0, Math.PI * 2);
-  c.fill();
-
-  const wingFlapOffset = Math.sin(tick * 0.18) * 6;
-  const wingSpread     = 28 + 4 * Math.abs(Math.sin(tick * 0.18));
-  const wingAlpha      = (0.55 + 0.20 * Math.sin(tick * 0.12)) * prog;
-
-  for (let side = -1; side <= 1; side += 2) {
-    c.save();
-    c.globalAlpha = wingAlpha;
-
-    const wgx1 = hx + side * 5;
-    const wgx2 = hx + side * wingSpread;
-    const wGr  = c.createLinearGradient(wgx1, hy, wgx2, hy - 18);
-    wGr.addColorStop(0,   `rgba(120,230,255,0.9)`);
-    wGr.addColorStop(0.5, `rgba(60,180,255,0.6)`);
-    wGr.addColorStop(1,   `rgba(0,100,220,0)`);
-    c.fillStyle   = wGr;
-    c.strokeStyle = `rgba(160,240,255,${wingAlpha * 0.7})`;
-    c.lineWidth   = 1;
-
-    c.beginPath();
-    c.moveTo(hx + side * 6,  hy - 4);
-    c.bezierCurveTo(
-      hx + side * wingSpread * 0.7,  hy - 18 + wingFlapOffset,
-      hx + side * wingSpread,        hy - 10 + wingFlapOffset,
-      hx + side * wingSpread * 0.5,  hy + 4
-    );
-    c.bezierCurveTo(
-      hx + side * 20, hy + 8,
-      hx + side * 8,  hy + 4,
-      hx + side * 6,  hy - 4
-    );
-    c.fill();
-    c.stroke();
-
-    c.globalAlpha = wingAlpha * 0.55;
-    c.beginPath();
-    c.moveTo(hx + side * 5,  hy + 4);
-    c.bezierCurveTo(
-      hx + side * wingSpread * 0.65, hy + 14 - wingFlapOffset * 0.5,
-      hx + side * wingSpread * 0.8,  hy + 18 - wingFlapOffset * 0.5,
-      hx + side * wingSpread * 0.3,  hy + 20
-    );
-    c.bezierCurveTo(
-      hx + side * 10, hy + 16,
-      hx + side * 5,  hy + 12,
-      hx + side * 5,  hy + 4
-    );
-    c.fill();
-
-    c.restore();
-  }
-
-  c.save();
-  const lineCount = 5;
-  for (let li = 0; li < lineCount; li++) {
-    const phase  = (li / lineCount) * Math.PI * 2 + tick * 0.09;
-    const lx     = hx + Math.sin(phase) * 12;
-    const lyBase = hy + ph.height * 0.45;
-    const len    = 10 + 8 * Math.abs(Math.sin(phase * 0.7));
-    const la     = (0.30 + 0.15 * Math.sin(phase)) * prog;
-    const lhue   = 190 + li * 10;
-    c.globalAlpha = la;
-    c.strokeStyle = `hsl(${lhue},100%,75%)`;
-    c.lineWidth   = 1.2 - li * 0.12;
-    c.lineCap     = "round";
-    c.beginPath();
-    c.moveTo(lx, lyBase);
-    c.lineTo(lx + (Math.random() - 0.5), lyBase + len);
-    c.stroke();
-  }
-  c.restore();
-
-  const orbCount  = 4;
-  const orbRadius = 22;
-  for (let oi = 0; oi < orbCount; oi++) {
-    const orbAngle = _flyAuraAngle * 1.8 + (oi / orbCount) * Math.PI * 2;
-    const ox_      = hx + Math.cos(orbAngle) * orbRadius;
-    const oy_      = hy + Math.sin(orbAngle) * orbRadius * 0.55;
-    const orbHue   = 180 + oi * 22;
-    const orbA     = (0.65 + 0.20 * Math.sin(orbAngle * 2)) * prog;
-    const orbSize  = 2.5 + 0.8 * Math.sin(orbAngle * 3);
-
-    c.save();
-    c.globalAlpha = orbA;
-    c.fillStyle   = `hsl(${orbHue},100%,80%)`;
-    c.beginPath();
-    c.arc(ox_, oy_, orbSize, 0, Math.PI * 2);
-    c.fill();
-    // Soft halo around orb (one pass, no shadowBlur loop)
-    const orbGr = c.createRadialGradient(ox_, oy_, 0, ox_, oy_, orbSize * 3.5);
-    orbGr.addColorStop(0,   `hsla(${orbHue},100%,80%,0.35)`);
-    orbGr.addColorStop(1,   `hsla(${orbHue},100%,60%,0)`);
-    c.fillStyle = orbGr;
-    c.beginPath();
-    c.arc(ox_, oy_, orbSize * 3.5, 0, Math.PI * 2);
-    c.fill();
-    c.restore();
-  }
-
-  // ══════════════════════════════════════════════════════════
-  //  LAYER 5 – Electric arc flickers (random jagged lines)
-  // ══════════════════════════════════════════════════════════
-  if (Math.random() < 0.35) {
-    c.save();
-    const arcSide  = Math.random() < 0.5 ? -1 : 1;
-    const arcAngle = Math.random() * Math.PI;
-    const arcLen   = 10 + Math.random() * 14;
-    const arcSegs  = 5;
-    let ax = hx + arcSide * 8;
-    let ay = hy + (Math.random() - 0.5) * 10;
-    c.strokeStyle = `rgba(180,240,255,${0.55 * prog})`;
-    c.lineWidth   = 0.8;
-    c.lineCap     = "round";
-    c.lineJoin    = "round";
-    c.beginPath();
-    c.moveTo(ax, ay);
-    for (let seg = 0; seg < arcSegs; seg++) {
-      ax += arcSide * (arcLen / arcSegs) + (Math.random() - 0.5) * 5;
-      ay += (Math.random() - 0.5) * 7;
-      c.lineTo(ax, ay);
-    }
-    c.stroke();
-    c.restore();
-  }
-
-  // ══════════════════════════════════════════════════════════
-  //  LAYER 6 – Pulsing energy core at hero center
-  // ══════════════════════════════════════════════════════════
-  const coreR  = 5 + 2 * Math.abs(Math.sin(tick * 0.22));
-  const coreA  = (0.70 + 0.20 * Math.sin(tick * 0.22)) * prog;
-  const coreGr = c.createRadialGradient(hx, hy, 0, hx, hy, coreR * 2.5);
-  coreGr.addColorStop(0,   `rgba(255,255,255,${coreA})`);
-  coreGr.addColorStop(0.4, `rgba(120,230,255,${coreA * 0.6})`);
-  coreGr.addColorStop(1,   `rgba(0,140,255,0)`);
-  c.fillStyle = coreGr;
-  c.beginPath();
-  c.arc(hx, hy, coreR * 2.5, 0, Math.PI * 2);
   c.fill();
 
   // ══════════════════════════════════════════════════════════
@@ -370,93 +241,7 @@ function drawFlyPowerEffects() {
     c.fillStyle = urgGr;
     c.beginPath();
     c.arc(hx, hy, 36, 0, Math.PI * 2);
-    c.fill();
-  }
-
-  c.restore();
-}
-
-// ── HUD bar (screen-space, outside camera) ───────────────────
-function drawFlyPowerHUD() {
-  const panW = 155;
-  const panH = 26;
-  const barW = 84;
-  const barH = 7;
-  const px   = 10;
-  const py   = 70;   // directly below HP panel (py=10, panH=52 → gap at 68)
-
-  const ready  = !flyPowerActive && flyCooldown === 0 && !gameOver;
-  const active = flyPowerActive;
-
-  c.save();
-  c.textBaseline = "middle";
-  c.textAlign    = "left";
-
-  // ── Panel ──────────────────────────────────────────────────
-  c.fillStyle = "rgba(0,0,0,0.68)";
-  _roundRect(c, px, py, panW, panH, 8);
-  c.fill();
-  c.strokeStyle = active ? "rgba(0,200,255,0.30)" : "rgba(255,255,255,0.08)";
-  c.lineWidth   = 1;
-  _roundRect(c, px, py, panW, panH, 8);
-  c.stroke();
-
-  // ── "FLY" label ─────────────────────────────────────────────
-  c.font      = "bold 9px monospace";
-  c.fillStyle = active ? "#00EEFF" : ready ? "#55AACC" : "#3a5566";
-  c.fillText("FLY", px + 8, py + 13);
-
-  // ── Bar track ───────────────────────────────────────────────
-  const bx  = px + 34;
-  const by_ = py + Math.floor((panH - barH) / 2);
-  c.fillStyle = "rgba(255,255,255,0.07)";
-  _roundRect(c, bx, by_, barW, barH, barH / 2);
-  c.fill();
-
-  // ── Bar fill ────────────────────────────────────────────────
-  let ratio, fillColor;
-  if (active) {
-    ratio     = flyPowerTimer / FLY_DURATION;
-    const hue = 185 + (1 - ratio) * 55;
-    fillColor = `hsl(${hue},100%,60%)`;
-    c.shadowColor = `hsl(${hue},100%,65%)`;
-    c.shadowBlur  = 6 + 2 * Math.sin(_flyAuraAngle * 3);
-  } else if (flyCooldown > 0) {
-    ratio     = 1 - flyCooldown / FLY_COOLDOWN_MAX;
-    fillColor = "#1a3a4a";
-  } else {
-    ratio     = 1;
-    fillColor = "#00BBFF";
-    c.shadowColor = "#00CCFF";
-    c.shadowBlur  = 8 + 4 * Math.sin(_flyAuraAngle * 3);
-  }
-
-  if (ratio > 0) {
-    c.fillStyle = fillColor;
-    _roundRect(c, bx, by_, barW * ratio, barH, barH / 2);
-    c.fill();
-  }
-  c.shadowBlur = 0;
-
-  // Active shimmer
-  if (active && Math.floor(_flyWingTick / 5) % 2 === 0 && ratio > 0) {
-    c.fillStyle = "rgba(180,255,255,0.14)";
-    _roundRect(c, bx, by_, barW * ratio, barH, barH / 2);
-    c.fill();
-  }
-
-  // ── Status text (right of bar) ──────────────────────────────
-  const statX = bx + barW + 6;
-  c.font      = "bold 8px monospace";
-  if (active) {
-    c.fillStyle = "#AAFFFF";
-    c.fillText(Math.ceil(flyPowerTimer / 60) + "s", statX, py + 13);
-  } else if (flyCooldown > 0) {
-    c.fillStyle = "#445566";
-    c.fillText(Math.ceil(flyCooldown / 60) + "s", statX, py + 13);
-  } else {
-    c.fillStyle = "rgba(0,200,255,0.80)";
-    c.fillText("[F]", statX, py + 13);
+     c.fill();
   }
 
   c.restore();
@@ -566,8 +351,8 @@ function drawFlyButton() {
   c.restore(); // end clip
 
   // ── Step 3: clean circle border ──────────────────────────
-  c.strokeStyle = active ? "#00FFEE"
-                : ready  ? "#0099CC"
+  c.strokeStyle = active ? "#FFD700"
+                : ready  ? "#CC8800"
                 :           "#1e3a4a";
   c.lineWidth   = active ? 2.5 : 1.5;
   c.beginPath();
@@ -584,7 +369,7 @@ function drawFlyButton() {
     c.lineCap     = "butt";
     c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2); c.stroke();
     // fill
-    c.strokeStyle = "rgba(0,180,220,0.70)";
+    c.strokeStyle = "rgba(255,160,0,0.75)";
     c.lineCap     = "round";
     c.beginPath();
     c.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + ratio * Math.PI * 2);
@@ -594,16 +379,16 @@ function drawFlyButton() {
   if (active) {
     const ratio = flyPowerTimer / FLY_DURATION;
     const r     = BTN / 2 + 5;
-    const hue   = 175 + (1 - ratio) * 45;
+    const hue   = 44 + (1 - ratio) * 8;
     // track
     c.strokeStyle = "rgba(255,255,255,0.06)";
     c.lineWidth   = 4;
     c.lineCap     = "butt";
     c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2); c.stroke();
     // fill – glow only on the arc ring, far from sprite
-    c.shadowColor = `hsl(${hue},100%,60%)`;
+    c.shadowColor = `hsl(${hue},100%,55%)`;
     c.shadowBlur  = 6;
-    c.strokeStyle = `hsl(${hue},100%,58%)`;
+    c.strokeStyle = `hsl(${hue},100%,52%)`;
     c.lineCap     = "round";
     c.beginPath();
     c.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + ratio * Math.PI * 2);
@@ -614,7 +399,7 @@ function drawFlyButton() {
   if (ready) {
     // subtle pulse ring when ready
     const pulseR = BTN / 2 + 4 + 2 * Math.sin(_flyAuraAngle * 3);
-    c.strokeStyle = `rgba(0,200,255,${0.28 + 0.12 * Math.sin(_flyAuraAngle * 3)})`;
+    c.strokeStyle = `rgba(255, 180, 0, ${0.28 + 0.12 * Math.sin(_flyAuraAngle * 3)})`;
     c.lineWidth   = 1.5;
     c.lineCap     = "butt";
     c.beginPath();
@@ -628,10 +413,10 @@ function drawFlyButton() {
     const kx = bx + 2, ky = by + 2;
     c.fillStyle   = "rgba(0,0,0,0.60)";
     _roundRect(c, kx, ky, kw, kh, 3); c.fill();
-    c.strokeStyle = "rgba(0,200,255,0.50)";
+    c.strokeStyle = "rgba(200,150,0,0.55)";
     c.lineWidth   = 0.8;
     _roundRect(c, kx, ky, kw, kh, 3); c.stroke();
-    c.fillStyle    = ready ? "#66DDFF" : "#334455";
+    c.fillStyle   = ready ? "#FFCC44" : "#334455";
     c.font         = "bold 8px monospace";
     c.textAlign    = "center";
     c.textBaseline = "middle";

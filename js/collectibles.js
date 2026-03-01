@@ -301,9 +301,10 @@ function animate() {
     updateCollectibles();
     updateBats();
     drawHeroHitEffect();
+    drawWingSprites();        // wings drawn BEFORE hero so hero renders on top
     updateHero();
     updateFlyPower();         // override velocity after hero physics
-    drawFlyPowerEffects();    // world-space aura & sprite (inside camera)
+    drawFlyPowerEffects();    // world-space aura & particles (after hero)
     clampCamera();
   } else {
     updateCollectibles();

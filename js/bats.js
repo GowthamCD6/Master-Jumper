@@ -695,20 +695,16 @@ function drawHPHearts() {
   c.textBaseline = "middle";
   c.textAlign    = "left";
 
-  const HEART = 16;          // heart icon size
-  const GAP   = 6;           // gap between hearts
-  const PAD_X = 10;          // left padding inside panel
-  const PAD_Y = 10;          // top of panel from canvas edge
+  const HEART = 16;
+  const GAP   = 6;
+  const PAD_X = 10;
+  const PAD_Y = 10; 
 
-  // ── Measure widths ─────────────────────────────────────────
-  const labelW  = 26;        // width taken by "HP " label
+  const labelW  = 26;
   const heartsW = HERO_MAX_HP * HEART + (HERO_MAX_HP - 1) * GAP;
-  const panW    = PAD_X + labelW + heartsW + PAD_X;  // ~112 for 3 hearts
+  const panW    = PAD_X + labelW + heartsW + PAD_X;
   const panH    = 34;
 
-  // ╔══════════════════════════════════════╗
-  //  HP PANEL
-  // ╚══════════════════════════════════════╝
   c.fillStyle = "rgba(8,8,16,0.82)";
   _roundRect(c, PAD_Y, PAD_Y, panW, panH, 7);
   c.fill();

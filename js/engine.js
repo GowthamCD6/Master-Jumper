@@ -23,15 +23,6 @@ class CollisionBlock {
     this.width = width;
     this.height = height;
   }
-
-  draw() {
-    c.fillStyle = "rgba(255, 0, 0, 0.5)";
-    c.fillRect(this.position.x, this.position.y, this.width, this.height);
-  }
-
-  update() {
-    this.draw();
-  }
 }
 
 class Sprite {
@@ -122,6 +113,13 @@ class Player extends Sprite {
     this.frameRate = this.animations[key].frameRate;
   }
 
+  // During fly power, the king.wings.png sprite replaces the hero render.
+  // Returning early here means only drawWingSprites() is visible.
+  draw() {
+    if (typeof flyPowerActive !== "undefined" && flyPowerActive) return;
+    super.draw();
+  }
+
   updateCamerabox() {
     this.camerabox = {
       position: { x: this.position.x - 22, y: this.position.y - 100 },
@@ -135,22 +133,6 @@ class Player extends Sprite {
       this.hitbox.position.x + this.velocity.x <= 0
     ) {
       this.velocity.x = 0;
-    }
-  }
-
-  shouldPanCameraToTheLeft({ canvas, camera }) {
-    const cameraboxRightSide = this.camerabox.position.x + this.camerabox.width;
-    const scaledDownCanvasWidth = canvas.width / GAME_SCALE;
-    if (cameraboxRightSide >= WORLD_WIDTH) return;
-    if (cameraboxRightSide >= scaledDownCanvasWidth + Math.abs(camera.position.x)) {
-      camera.position.x -= this.velocity.x;
-    }
-  }
-
-  shouldPanCameraToTheRight({ canvas, camera }) {
-    if (this.camerabox.position.x <= 0) return;
-    if (this.camerabox.position.x <= Math.abs(camera.position.x)) {
-      camera.position.x -= this.velocity.x;
     }
   }
 
