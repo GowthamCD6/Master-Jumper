@@ -237,7 +237,7 @@ const COLLECTIBLE_SIZE = { coin: 14, heart: 14 };
 
 class Collectible extends Sprite {
   constructor({ position, type = "coin" }) {
-    const src = type === "heart" ? "./img/warrior/heart.png" : "./img/warrior/coin.png";
+    const src = type === "heart" ? "./assets/img/heart.png" : "./assets/img/coin.png";
     super({ imageSrc: src, frameRate: 1, frameBuffer: 1, scale: 1 });
     this.position = { x: position.x, y: position.y };
     this.type = type;

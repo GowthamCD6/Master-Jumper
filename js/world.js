@@ -134,7 +134,7 @@ platformGroups.forEach((group) => {
 });
 
 const stoneImg = new Image();
-stoneImg.src = "./img/warrior/stepstone.png";
+stoneImg.src = "./assets/img/stepstone.png";
 let stoneLoaded = false;
 
 const stoneSprites = [
@@ -182,7 +182,7 @@ function drawSteppingStones() {
 }
 
 const bgImage = new Image();
-bgImage.src = "./img/background2.jpg";
+bgImage.src = "./assets/img/background/background2.jpg";
 let bgLoaded = false;
 bgImage.onload = () => { bgLoaded = true; };
 

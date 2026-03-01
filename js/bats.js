@@ -1,4 +1,4 @@
-const BAT_SIZE      = 28;
+﻿const BAT_SIZE      = 28;
 const BAT_DETECT    = 120;
 const BAT_SPEED     = 1.2;
 const BAT_SWOOP_SPD = 1.8;
@@ -69,15 +69,15 @@ let deathTimer    = 0;
 const DEATH_DELAY = 90;
 
 const batImg = new Image();
-batImg.src = "./img/warrior/bat.png";
+batImg.src = "./assets/img/bat.png";
 let batLoaded = false;
 batImg.onload = () => { batLoaded = true; };
 
 const takeHitImg = new Image();
-takeHitImg.src = "./img/warrior/Take Hit.png";
+takeHitImg.src = "./assets/img/warrior/Take Hit.png";
 
 const deathImg = new Image();
-deathImg.src = "./img/warrior/Death.png";
+deathImg.src = "./assets/img/warrior/Death.png";
 
 class Bat {
   constructor({ x, y, patrolLeft, patrolRight }) {
@@ -433,7 +433,7 @@ function updateBats() {
 
   bats.forEach((bat) => {
     if (bat.checkHit()) {
-      // Fly power – bat dies instantly on contact
+      // Fly power â€“ bat dies instantly on contact
       if (flyPowerActive) {
         const heroMidX = player.hitbox.position.x + player.hitbox.width / 2;
         bat.hp = 1;          // ensure one hit kills
@@ -562,7 +562,7 @@ function drawGameOverScreen() {
     c.shadowBlur  = 24 + 8 * Math.sin(t * 0.08);
     c.font        = "44px serif";
     c.fillStyle   = "#FF2222";
-    c.fillText("☠", cx, cy - 90);
+    c.fillText("â˜ ", cx, cy - 90);
     c.restore();
   }
 
@@ -637,14 +637,14 @@ function drawGameOverScreen() {
     c.font = "bold 13px monospace";
 
     const rows = [
-      { icon: "🪙", label: "Coins",  value: coinScore,      color: "#FFD700" },
-      { icon: "💀", label: "Kills",  value: batsKilled,     color: "#FF7766" },
-      { icon: "⬆",  label: "Height", value: heightClimbed + "m", color: "#88CCFF" },
+      { icon: "ðŸª™", label: "Coins",  value: coinScore,      color: "#FFD700" },
+      { icon: "ðŸ’€", label: "Kills",  value: batsKilled,     color: "#FF7766" },
+      { icon: "â¬†",  label: "Height", value: heightClimbed + "m", color: "#88CCFF" },
     ];
 
     c.fillStyle = "rgba(255,100,100,0.7)";
     c.font      = "10px monospace";
-    c.fillText("— SESSION STATS —", cx, cardY + 20);
+    c.fillText("â€” SESSION STATS â€”", cx, cardY + 20);
 
     rows.forEach((row, i) => {
       const ry = cardY + 57 + i * 22;
@@ -680,7 +680,7 @@ function drawGameOverScreen() {
     c.shadowBlur  = glowAmt;
     c.font        = "bold 15px monospace";
     c.fillStyle   = "#FFFFFF";
-    c.fillText("— Press any key to restart —", cx, cy + 135);
+    c.fillText("â€” Press any key to restart â€”", cx, cy + 135);
     c.restore();
   }
 
@@ -777,7 +777,7 @@ function drawHPHearts() {
     c.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  // ── Damage flash ───────────────────────────────────────────
+  // â”€â”€ Damage flash â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (damageFlash > 0) {
     damageFlash--;
     c.fillStyle = "rgba(200,0,0," + (damageFlash / 30) + ")";

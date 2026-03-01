@@ -16,12 +16,8 @@ let _flyBtnReady   = false;
 const _flyBirdImg    = new Image();
 let   _flyBirdLoaded = false;
 _flyBirdImg.onload   = () => { _flyBirdLoaded = true; };
-_flyBirdImg.onerror  = () => {
-  const _fb2 = new Image();
-  _fb2.onload = () => { _flyBirdImg.src = _fb2.src; _flyBirdLoaded = true; };
-  _fb2.src = "./imgs/flappybirdassets(1).png";
-};
-_flyBirdImg.src = "./img/warrior/powers.png";
+_flyBirdImg.onerror  = () => { _flyBirdLoaded = false; };
+_flyBirdImg.src = "./assets/img/powers.png";
 
 function activateFlyPower() {
   if (flyPowerActive || flyCooldown > 0 || gameOver) return;
@@ -157,7 +153,7 @@ const _KING_WING_BUF = 10; // ticks per frame (~6 beats/sec at 60 fps)
 const _kingWingsImg    = new Image();
 let   _kingWingsLoaded = false;
 _kingWingsImg.onload   = () => { _kingWingsLoaded = true; };
-_kingWingsImg.src      = "./img/warrior/king.wings1.png";
+_kingWingsImg.src      = "./assets/img/warrior/king.wings1.png";
 
 // ─────────────────────────────────────────────────────────────
 //  drawWingSprites()

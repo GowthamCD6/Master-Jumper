@@ -295,19 +295,25 @@ function animate() {
     c.fillRect(block.position.x, block.position.y, block.width, 4);
   });
 
-  if (!gameOver) {
+  // Always update portal even during gameOver so battle screen works
+  var _inPortal = typeof _portalState !== 'undefined' &&
+    (_portalState === 'entering' || _portalState === 'battle' || _portalState === 'dismissed');
+
+  if (!gameOver || _inPortal) {
     checkWorldExtension();
     checkCollectibleCollisions();
     updateCollectibles();
-    updateBats();
+    updatePortal();           // portal checkpoint – observes hero each frame
+    if (!_inPortal) updateBats();  // skip bat updates during portal
     drawHeroHitEffect();
-    drawWingSprites();        // wings drawn BEFORE hero so hero renders on top
+    drawWingSprites();
     updateHero();
-    updateFlyPower();         // override velocity after hero physics
-    drawFlyPowerEffects();    // world-space aura & particles (after hero)
+    updateFlyPower();
+    drawFlyPowerEffects();
     clampCamera();
   } else {
     updateCollectibles();
+    updatePortal();           // keep portal updating during gameOver
     bats.forEach((bat) => bat.draw());
     player.draw();
   }
@@ -316,8 +322,10 @@ function animate() {
 
   drawHUD();
   drawHPHearts();
-  drawFlyButton();            // test button bottom-right
-  drawGameOverScreen();
+  drawPortalFlash();          // screen-space: entering flash / battle overlay / fade-out
+  drawFlyButton();
+  // Don't show game-over screen while in the portal battle
+  if (!_inPortal) drawGameOverScreen();
 
   if (!gameOver) checkRespawn();
 }
