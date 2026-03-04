@@ -1,4 +1,4 @@
-const FLY_DURATION     = 600;  // 10 seconds at 60 fps
+const FLY_DURATION     = 600;
 const FLY_COOLDOWN_MAX = 360;
 const FLY_RISE_SPEED   = -2.0;
 
@@ -41,7 +41,7 @@ function _spawnFlyBurst(count = 24, color = null) {
   for (let i = 0; i < count; i++) {
     const angle = (i / count) * Math.PI * 2 + Math.random() * 0.5;
     const spd   = 1.2 + Math.random() * 2.5;
-    const hue   = color ? null : 35 + Math.random() * 16;  // golden amber
+    const hue   = color ? null : 35 + Math.random() * 16;
     _flyParticles.push({
       x: ox, y: oy,
       vx: Math.cos(angle) * spd,
@@ -139,47 +139,32 @@ function _tickFlyParticles() {
   }
 }
 
-// ── king.wings1.png frame data ─────────────────────────────────
-// 3 source frames (from CSS sprite offsets)
 const _KING_WING_FRAMES = [
-  { sx:  50, sy:  20, sw: 307, sh: 181 }, // 0 – open   (wings fully spread)
-  { sx:  66, sy: 215, sw: 275, sh: 144 }, // 1 – middle (wings horizontal)
-  { sx: 101, sy: 387, sw: 206, sh: 139 }, // 2 – bottom (wings folded down)
+  { sx:  50, sy:  20, sw: 307, sh: 181 },
+  { sx:  66, sy: 215, sw: 275, sh: 144 },
+  { sx: 101, sy: 387, sw: 206, sh: 139 },
 ];
-// Natural flap cycle: open → middle → closed → middle → (repeat)
 const _KING_WING_SEQ = [0, 1, 2, 1];
-const _KING_WING_BUF = 10; // ticks per frame (~6 beats/sec at 60 fps)
+const _KING_WING_BUF = 10;
 
 const _kingWingsImg    = new Image();
 let   _kingWingsLoaded = false;
 _kingWingsImg.onload   = () => { _kingWingsLoaded = true; };
 _kingWingsImg.src      = "./assets/img/warrior/king.wings1.png";
 
-// ─────────────────────────────────────────────────────────────
-//  drawWingSprites()
-//  The game hero is hidden during flight (Player.draw() returns early).
-//  This function draws the COMPLETE king.wings.png frame (king + wings)
-//  at exactly player.height, at the same origin as the normal hero,
-//  so it looks identical in size and position. Wings extend naturally
-//  to the sides. Mirrors for left-facing direction.
-// ─────────────────────────────────────────────────────────────
 function drawWingSprites() {
   if (!flyPowerActive || !_kingWingsLoaded) return;
 
   const seqIdx = Math.floor(_flyWingTick / _KING_WING_BUF) % _KING_WING_SEQ.length;
   const frame  = _KING_WING_FRAMES[_KING_WING_SEQ[seqIdx]];
 
-  // Use the hitbox (the real body) as anchor – avoids sprite-sheet padding bloat.
-  // dh is tuned so the king figure inside king.wings.png matches the normal hero.
   const hb = player.hitbox;
-  const dh = hb.height * 1.2;          // ~90 px – same visual height as the hero
+  const dh = hb.height * 1.2;
   const dw = (frame.sw / frame.sh) * dh;
 
-  // Centre horizontally on the hitbox; vertically centred on the hitbox
   const cx = hb.position.x + hb.width  / 2;
   const cy = hb.position.y + hb.height / 2 - dh / 2;
 
-  // Fade out over the last 60 frames
   const wingAlpha = flyPowerTimer <= 60 ? flyPowerTimer / 60 : 1.0;
 
   c.save();
@@ -225,11 +210,8 @@ function drawFlyPowerEffects() {
   c.arc(hx, hy, outerR, 0, Math.PI * 2);
   c.fill();
 
-  // ══════════════════════════════════════════════════════════
-  //  LAYER 7 – Last-2-sec urgency red pulse
-  // ══════════════════════════════════════════════════════════
   if (flyPowerTimer < 120) {
-    const t      = flyPowerTimer / 120;   // 1→0
+    const t      = flyPowerTimer / 120;
     const pulseA = (1 - t) * 0.22 * Math.abs(Math.sin(tick * 0.25));
     const urgGr  = c.createRadialGradient(hx, hy, 0, hx, hy, 36);
     urgGr.addColorStop(0, `rgba(255,60,60,${pulseA})`);
@@ -243,32 +225,26 @@ function drawFlyPowerEffects() {
   c.restore();
 }
 
-// ── On-screen test button (center-bottom) ───────────────────
-// ── Helper: canvas-drawn bird silhouette (fallback when image missing) ─
 function _drawBirdShape(ctx, x, y, w, h, flapY) {
   ctx.save();
   ctx.translate(x + w / 2, y + h / 2);
   ctx.scale(1, flapY);
 
-  // Body
   ctx.fillStyle = "#FFD700";
   ctx.beginPath();
   ctx.ellipse(0, 2, w * 0.38, h * 0.30, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Wing top
   ctx.fillStyle = "#FFA500";
   ctx.beginPath();
   ctx.ellipse(-2, -2, w * 0.42, h * 0.18, -0.3, 0, Math.PI * 2);
   ctx.fill();
 
-  // Wing bottom
   ctx.fillStyle = "#FF8C00";
   ctx.beginPath();
   ctx.ellipse(-2, 6, w * 0.38, h * 0.14, 0.2, 0, Math.PI * 2);
   ctx.fill();
 
-  // Eye
   ctx.fillStyle = "#1a1a1a";
   ctx.beginPath();
   ctx.arc(w * 0.22, -1, w * 0.07, 0, Math.PI * 2);
@@ -278,7 +254,6 @@ function _drawBirdShape(ctx, x, y, w, h, flapY) {
   ctx.arc(w * 0.23, -1.4, w * 0.03, 0, Math.PI * 2);
   ctx.fill();
 
-  // Beak
   ctx.fillStyle = "#FF6600";
   ctx.beginPath();
   ctx.moveTo(w * 0.36, 2);
@@ -291,8 +266,7 @@ function _drawBirdShape(ctx, x, y, w, h, flapY) {
 }
 
 function drawFlyButton() {
-  // Button size & bottom-right position
-  const BTN  = 64;                              // hit-area square
+  const BTN  = 64;
   const PAD  = 14;
   const bx   = canvas.width  - BTN - PAD;
   const by   = canvas.height - BTN - PAD;
@@ -304,14 +278,12 @@ function drawFlyButton() {
 
   c.save();
 
-  // ── Wing-flap scale (no shadow set here – avoids blob) ───
   const flapY = active
     ? 0.60 + 0.40 * Math.abs(Math.sin(_flyWingTick * 0.42))
     : ready
       ? 0.88 + 0.12 * Math.sin(_flyWingTick * 0.10)
       : 1;
 
-  // ── Step 1: dark circle background ───────────────────────
   c.fillStyle = active  ? "rgba(0,30,40,0.80)"
               : ready   ? "rgba(0,20,35,0.70)"
               :            "rgba(10,15,20,0.60)";
@@ -319,7 +291,6 @@ function drawFlyButton() {
   c.arc(cx, cy, BTN / 2, 0, Math.PI * 2);
   c.fill();
 
-  // ── Step 2: sprite clipped to circle (NO shadowBlur here) ─
   c.save();
   c.beginPath();
   c.arc(cx, cy, BTN / 2 - 2, 0, Math.PI * 2);
@@ -344,9 +315,8 @@ function drawFlyButton() {
   }
 
   c.filter = "none";
-  c.restore(); // end clip
+  c.restore();
 
-  // ── Step 3: clean circle border ──────────────────────────
   c.strokeStyle = active ? "#FFD700"
                 : ready  ? "#CC8800"
                 :           "#1e3a4a";
@@ -355,16 +325,13 @@ function drawFlyButton() {
   c.arc(cx, cy, BTN / 2, 0, Math.PI * 2);
   c.stroke();
 
-  // ── Step 4: arc ring outside circle (glow only here) ─────
   if (flyCooldown > 0) {
     const ratio = 1 - flyCooldown / FLY_COOLDOWN_MAX;
     const r     = BTN / 2 + 5;
-    // track
     c.strokeStyle = "rgba(255,255,255,0.06)";
     c.lineWidth   = 4;
     c.lineCap     = "butt";
     c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2); c.stroke();
-    // fill
     c.strokeStyle = "rgba(255,160,0,0.75)";
     c.lineCap     = "round";
     c.beginPath();
@@ -376,12 +343,10 @@ function drawFlyButton() {
     const ratio = flyPowerTimer / FLY_DURATION;
     const r     = BTN / 2 + 5;
     const hue   = 44 + (1 - ratio) * 8;
-    // track
     c.strokeStyle = "rgba(255,255,255,0.06)";
     c.lineWidth   = 4;
     c.lineCap     = "butt";
     c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2); c.stroke();
-    // fill – glow only on the arc ring, far from sprite
     c.shadowColor = `hsl(${hue},100%,55%)`;
     c.shadowBlur  = 6;
     c.strokeStyle = `hsl(${hue},100%,52%)`;
@@ -393,7 +358,6 @@ function drawFlyButton() {
   }
 
   if (ready) {
-    // subtle pulse ring when ready
     const pulseR = BTN / 2 + 4 + 2 * Math.sin(_flyAuraAngle * 3);
     c.strokeStyle = `rgba(255, 180, 0, ${0.28 + 0.12 * Math.sin(_flyAuraAngle * 3)})`;
     c.lineWidth   = 1.5;
@@ -403,7 +367,6 @@ function drawFlyButton() {
     c.stroke();
   }
 
-  // ── Step 5: [F] key badge – top-left corner ───────────────
   if (!active) {
     const kw = 16, kh = 12;
     const kx = bx + 2, ky = by + 2;
@@ -421,7 +384,6 @@ function drawFlyButton() {
 
   c.restore();
 
-  // ── Pointer hit-test ────────────────────────────────────
   if (!_flyBtnReady) {
     _flyBtnReady = true;
     canvas.addEventListener("pointerdown", (e) => {
@@ -436,7 +398,6 @@ function drawFlyButton() {
   }
 }
 
-// ── Keyboard shortcut  [F] ───────────────────────────────────
 window.addEventListener("keydown", (e) => {
   if (e.key === "f" || e.key === "F") activateFlyPower();
 });

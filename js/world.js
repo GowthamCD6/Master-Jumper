@@ -187,6 +187,10 @@ let bgLoaded = false;
 bgImage.onload = () => { bgLoaded = true; };
 
 function drawBackground() {
+  if (typeof portalSystem !== "undefined" && portalSystem && portalSystem.worldTransition > 0) {
+    portalSystem.drawNewWorldBackground(c);
+    return;
+  }
   if (bgLoaded) c.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
 }
 

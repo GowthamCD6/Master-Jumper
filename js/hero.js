@@ -1,12 +1,8 @@
-// ============================================================
-//  Hero – Player instance & animation config
-// ============================================================
-
 const gravity = 0.07;
 
 const player = new Player({
   position: {
-    x: Math.floor((WORLD_WIDTH - 40) / 2),  // centered in wider world
+    x: Math.floor((WORLD_WIDTH - 40) / 2),
     y: WORLD_HEIGHT - 80,
   },
   collisionBlocks,
@@ -25,9 +21,6 @@ const player = new Player({
   },
 });
 
-/**
- * Handle player movement, sprite switching and camera panning.
- */
 function updateHero() {
   player.checkForHorizontalCanvasCollision();
   player.update();
@@ -57,9 +50,6 @@ function updateHero() {
   }
 }
 
-/**
- * Respawn player at bottom if they fall out of the world.
- */
 function checkRespawn() {
   if (player.position.y > WORLD_HEIGHT + 100) {
     player.position.x = Math.floor((WORLD_WIDTH - 40) / 2);

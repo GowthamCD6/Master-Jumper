@@ -226,14 +226,12 @@ function drawHUD() {
   const panH  = 34;
   const py    = 10;
 
-  // Measure text width to auto-size panel
   c.save();
   c.font = "bold 14px monospace";
   const numW  = c.measureText(String(coinScore)).width;
-  const panW  = 12 + ICON + 8 + 8 + numW + 12;   // pad + icon + gap + '×' + num + pad
+  const panW  = 12 + ICON + 8 + 8 + numW + 12;
   const px    = canvas.width - panW - 10;
 
-  // ── Panel ──────────────────────────────────────────────────
   c.fillStyle = "rgba(8,8,16,0.82)";
   _roundRect(c, px, py, panW, panH, 7);
   c.fill();
@@ -242,7 +240,6 @@ function drawHUD() {
   _roundRect(c, px, py, panW, panH, 7);
   c.stroke();
 
-  // ── Coin icon ──────────────────────────────────────────────
   const iconX = px + 10;
   const iconY = py + (panH - ICON) / 2;
   c.shadowColor = "rgba(255,200,0,0.55)";
@@ -250,7 +247,6 @@ function drawHUD() {
   c.drawImage(_hudCoin, iconX, iconY, ICON, ICON);
   c.shadowBlur  = 0;
 
-  // ── "× N" text ─────────────────────────────────────────────
   c.fillStyle    = "#FFD700";
   c.font         = "bold 14px monospace";
   c.textBaseline = "middle";
@@ -258,6 +254,8 @@ function drawHUD() {
   c.fillText(`\u00d7 ${coinScore}`, iconX + ICON + 8, py + panH / 2);
 
   c.restore();
+
+
 }
 
 function _roundRect(ctx, x, y, w, h, r) {
@@ -274,47 +272,73 @@ function _roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
+function _safeUpdatePortal() {
+  if (typeof updatePortal === "function") {
+    updatePortal();
+    return;
+  }
+  if (!_safeUpdatePortal._warned) {
+    console.warn("updatePortal is not available; portal system disabled.");
+    _safeUpdatePortal._warned = true;
+  }
+}
+
+function _drawHeroInPortal() {
+  if (!player) return;
+  if (typeof player.updateFrames === "function") player.updateFrames();
+  if (typeof player.draw === "function") player.draw();
+}
+
 function animate() {
   window.requestAnimationFrame(animate);
 
-  c.fillStyle = "white";
-  c.fillRect(0, 0, canvas.width, canvas.height);
+  const inBattleWorld = typeof isInBattleWorld === 'function' && isInBattleWorld();
 
-  drawBackground();
+  if (!inBattleWorld) {
+    c.fillStyle = "white";
+    c.fillRect(0, 0, canvas.width, canvas.height);
+  } else {
+    c.clearRect(0, 0, canvas.width, canvas.height);
+  }
+
+  _safeUpdatePortal();
+  
+  if (!inBattleWorld) {
+    drawBackground();
+  }
 
   c.save();
   c.scale(GAME_SCALE, GAME_SCALE);
   c.translate(camera.position.x, camera.position.y);
 
-  drawSteppingStones();
+  if (!inBattleWorld) {
+    drawSteppingStones();
+  }
 
-  collisionBlocks.forEach((block) => {
-    c.fillStyle = "#5D4037";
-    c.fillRect(block.position.x, block.position.y, block.width, block.height);
-    c.fillStyle = "#4CAF50";
-    c.fillRect(block.position.x, block.position.y, block.width, 4);
-  });
-
-  // Always update portal even during gameOver so battle screen works
-  var _inPortal = typeof _portalState !== 'undefined' &&
+  var _inPortal = !inBattleWorld && typeof _portalState !== 'undefined' &&
     (_portalState === 'entering' || _portalState === 'battle' || _portalState === 'dismissed');
 
   if (!gameOver || _inPortal) {
-    checkWorldExtension();
-    checkCollectibleCollisions();
-    updateCollectibles();
-    updatePortal();           // portal checkpoint – observes hero each frame
-    if (!_inPortal) updateBats();  // skip bat updates during portal
+    if (!inBattleWorld) {
+      checkWorldExtension();
+      checkCollectibleCollisions();
+      updateCollectibles();
+      if (!_inPortal) updateBats();
+    }
     drawHeroHitEffect();
     drawWingSprites();
-    updateHero();
+    if (_inPortal) _drawHeroInPortal();
+    else updateHero();
     updateFlyPower();
-    drawFlyPowerEffects();
-    clampCamera();
+    if (!inBattleWorld) {
+      drawFlyPowerEffects();
+    }
+    if (!inBattleWorld) clampCamera();
   } else {
-    updateCollectibles();
-    updatePortal();           // keep portal updating during gameOver
-    bats.forEach((bat) => bat.draw());
+    if (!inBattleWorld) {
+      updateCollectibles();
+      bats.forEach((bat) => bat.draw());
+    }
     player.draw();
   }
 
@@ -322,12 +346,11 @@ function animate() {
 
   drawHUD();
   drawHPHearts();
-  drawPortalFlash();          // screen-space: entering flash / battle overlay / fade-out
-  drawFlyButton();
-  // Don't show game-over screen while in the portal battle
+  if (typeof drawPortalFlash === 'function') drawPortalFlash();
+  if (typeof drawFlyButton === 'function' && !isInBattleWorld()) drawFlyButton();
   if (!_inPortal) drawGameOverScreen();
 
-  if (!gameOver) checkRespawn();
+  if (!gameOver && !inBattleWorld) checkRespawn();
 }
 
 window.addEventListener("keydown", (event) => {

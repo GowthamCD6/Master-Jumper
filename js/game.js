@@ -35,7 +35,7 @@ const gravity = 0.07;
 
 const player = new Player({
   position: {
-    x: Math.floor(WORLD_WIDTH / 2 - 62), // centre hitbox on screen
+    x: Math.floor(WORLD_WIDTH / 2 - 62),
     y: WORLD_HEIGHT - 80,
   },
   collisionBlocks,
@@ -65,7 +65,101 @@ const ATTACK_DURATION = 32;
 const COMBO_WINDOW    = 30;
 const ATTACK_NAMES    = ["Attack1", "Attack2", "Attack3"];
 
+function _updateHeroInBattle() {
+  const scaledW = canvas.width / GAME_SCALE;
+  const scaledH = GAME_HEIGHT / GAME_SCALE; 
+
+  const HERO_H = 62.4;
+  const HERO_W = 45;
+  const HERO_VISUAL_W = 90;
+
+  const BATTLE_FLOOR_Y = Math.round(scaledH * 0.70) - HERO_H;
+  const BATTLE_LEFT    = 0;
+  const BATTLE_RIGHT   = scaledW - HERO_VISUAL_W - 90;
+
+  if (isAttacking) {
+    attackTimer--;
+    if (attackTimer <= 0) {
+      isAttacking = false;
+      player.flipX = false;
+      comboWindow = COMBO_WINDOW;
+    }
+  }
+  if (!isAttacking && comboWindow > 0) {
+    comboWindow--;
+    if (comboWindow <= 0) attackCombo = 0;
+  }
+
+  player.velocity.x = 0;
+  if (keys.d.pressed) {
+    player.velocity.x = 2.5;
+    player.lastDirection = "right";
+    if (!isAttacking) player.switchSprite("Run");
+  } else if (keys.a.pressed) {
+    player.velocity.x = -2.5;
+    player.lastDirection = "left";
+    if (!isAttacking) player.switchSprite("RunLeft");
+  } else if (!isAttacking) {
+    if (player.lastDirection === "right") player.switchSprite("Idle");
+    else player.switchSprite("IdleLeft");
+  }
+
+  
+  player.velocity.y += gravity;
+
+  player.position.x += player.velocity.x;
+  player.position.y += player.velocity.y;
+  
+  if (player.position.x < BATTLE_LEFT) {
+    player.position.x = BATTLE_LEFT;
+    player.velocity.x = 0;
+  }
+  if (player.position.x > BATTLE_RIGHT) {
+    player.position.x = BATTLE_RIGHT;
+    player.velocity.x = 0;
+  }
+
+  if (player.position.y >= BATTLE_FLOOR_Y) {
+    player.position.y = BATTLE_FLOOR_Y;
+    player.velocity.y = 0;
+    player.isOnGround = true;
+  } else {
+    player.isOnGround = false;
+    if (!isAttacking) {
+      if (player.velocity.y < 0) {
+        if (player.lastDirection === "right") player.switchSprite("Jump");
+        else player.switchSprite("JumpLeft");
+      } else if (player.velocity.y > 0.5) {
+        if (player.lastDirection === "right") player.switchSprite("Fall");
+        else player.switchSprite("FallLeft");
+      }
+    }
+  }
+
+  if (player.position.y < 30) {
+    player.position.y = 30;
+    player.velocity.y = 0;
+  }
+
+  if (isAttacking) {
+    const atkName = ATTACK_NAMES[attackCombo];
+    player.switchSprite(atkName);
+    player.flipX = (player.lastDirection === "left");
+  }
+
+  player.updateFrames();
+  player.updateHitbox();
+  player.draw();
+}
+
 function updateHero() {
+  const inBattleWorld = typeof isInBattleWorld === 'function' && isInBattleWorld();
+
+  if (inBattleWorld) {
+    _updateHeroInBattle();
+    return;
+  }
+
   player.checkForHorizontalCanvasCollision();
   player.update();
 
@@ -110,7 +204,6 @@ function updateHero() {
     player.shouldPanCameraUp({ camera, canvas });
   }
 
-  // During fly, lock the hero to Idle/IdleLeft (wings carry the visual)
   if (flyPowerActive && !isAttacking) {
     if (player.lastDirection === "right") player.switchSprite("Idle");
     else player.switchSprite("IdleLeft");
@@ -176,3 +269,45 @@ window.addEventListener("keyup", (event) => {
     case "a": case "ArrowLeft":  keys.a.pressed = false; break;
   }
 });
+
+let _touchControlsInit = false;
+function initTouchControls() {
+  if (_touchControlsInit) return;
+  _touchControlsInit = true;
+
+  canvas.addEventListener("touchstart", (e) => {
+    e.preventDefault();
+    if (gameOver) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    for (const touch of e.touches) {
+      const x = touch.clientX - rect.left;
+      const relX = x / rect.width;
+      
+      if (relX < 0.33) {
+        keys.a.pressed = true;
+      } else if (relX > 0.67) {
+        keys.d.pressed = true;
+      } else {
+        if (player.isOnGround) {
+          player.velocity.y = -3.5;
+          player.isOnGround = false;
+        }
+      }
+    }
+  }, { passive: false });
+
+  canvas.addEventListener("touchend", (e) => {
+    e.preventDefault();
+    if (e.touches.length === 0) {
+      keys.a.pressed = false;
+      keys.d.pressed = false;
+    }
+  }, { passive: false });
+
+  canvas.addEventListener("touchmove", (e) => {
+    e.preventDefault();
+  }, { passive: false });
+}
+
+setTimeout(initTouchControls, 100);

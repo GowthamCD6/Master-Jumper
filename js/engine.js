@@ -113,11 +113,42 @@ class Player extends Sprite {
     this.frameRate = this.animations[key].frameRate;
   }
 
-  // During fly power, the king.wings.png sprite replaces the hero render.
-  // Returning early here means only drawWingSprites() is visible.
   draw() {
     if (typeof flyPowerActive !== "undefined" && flyPowerActive) return;
-    super.draw();
+    if (!this.image || !this.loaded) return;
+
+    const rotation = this.portalRotation || 0;
+    const scale = this.suckScale || 1;
+    const stretchX = this.portalStretchX || 1;
+    const stretchY = this.portalStretchY || 1;
+    const hasPortalFx = rotation !== 0 || scale !== 1 || stretchX !== 1 || stretchY !== 1;
+
+    if (!hasPortalFx) {
+      super.draw();
+      return;
+    }
+
+    const cropbox = {
+      position: { x: this.currentFrame * (this.image.width / this.frameRate), y: 0 },
+      width: this.image.width / this.frameRate,
+      height: this.image.height,
+    };
+
+    c.save();
+    const centerX = this.position.x + this.width / 2;
+    const centerY = this.position.y + this.height / 2;
+    const flip = this.flipX ? -1 : 1;
+
+    c.translate(centerX, centerY);
+    c.rotate(rotation);
+    c.scale(scale * stretchX * flip, scale * stretchY);
+
+    c.drawImage(
+      this.image,
+      cropbox.position.x, cropbox.position.y, cropbox.width, cropbox.height,
+      -this.width / 2, -this.height / 2, this.width, this.height,
+    );
+    c.restore();
   }
 
   updateCamerabox() {

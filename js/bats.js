@@ -433,12 +433,11 @@ function updateBats() {
 
   bats.forEach((bat) => {
     if (bat.checkHit()) {
-      // Fly power â€“ bat dies instantly on contact
       if (flyPowerActive) {
         const heroMidX = player.hitbox.position.x + player.hitbox.width / 2;
-        bat.hp = 1;          // ensure one hit kills
+        bat.hp = 1;
         bat.takeHit(heroMidX);
-        _spawnFlyBurst(10, "#FFEE55");  // golden burst on kill
+        _spawnFlyBurst(10, "#FFEE55");
         return;
       }
 
@@ -713,12 +712,10 @@ function drawHPHearts() {
   _roundRect(c, PAD_Y, PAD_Y, panW, panH, 7);
   c.stroke();
 
-  // "HP" label
   c.font      = "bold 10px monospace";
   c.fillStyle = "#EE8888";
   c.fillText("HP", PAD_Y + PAD_X, PAD_Y + panH / 2);
 
-  // Hearts row
   const hStartX = PAD_Y + PAD_X + labelW;
   const hStartY = PAD_Y + (panH - HEART) / 2;
 
@@ -777,7 +774,6 @@ function drawHPHearts() {
     c.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  // â”€â”€ Damage flash â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (damageFlash > 0) {
     damageFlash--;
     c.fillStyle = "rgba(200,0,0," + (damageFlash / 30) + ")";
